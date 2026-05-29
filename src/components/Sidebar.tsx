@@ -18,6 +18,10 @@ export default function Sidebar() {
             <span className="nav-icon">📊</span>
             Dashboard
           </Link>
+          <Link href="/database" className="nav-item">
+            <span className="nav-icon">🗄️</span>
+            Database
+          </Link>
           <Link href="/management" className="nav-item">
             <span className="nav-icon">⚙️</span>
             Management
