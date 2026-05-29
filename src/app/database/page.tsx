@@ -22,16 +22,13 @@ const initialRevenues = [
 
 const initialServers = [
   // Team Reda Servers
-  { id: 1, team: 'Reda', name: 's_wmn3_2182', dateEntre: '10/03/2026', noticeDate: '03/06/2026', noticeDateWarning: false },
-  { id: 2, team: 'Reda', name: 's_wmn3_2160', dateEntre: '26/02/2026', noticeDate: '17/05/2026', noticeDateWarning: true },
-  { id: 3, team: 'Reda', name: 's_wmn3_2159', dateEntre: '26/02/2026', noticeDate: '19/05/2026', noticeDateWarning: true },
-  { id: 4, team: 'Reda', name: 's_wmn3_2225', dateEntre: '27/04/2026', noticeDate: '01/08/2026', noticeDateWarning: true },
+  { id: 1, team: 'Reda', name: 'SRV-RED-001', ip: '192.168.10.1', status: 'Online', region: 'EU-West', load: '45%' },
+  { id: 2, team: 'Reda', name: 'SRV-RED-002', ip: '192.168.10.2', status: 'Online', region: 'EU-West', load: '62%' },
+  { id: 3, team: 'Reda', name: 'SRV-RED-003', ip: '192.168.10.3', status: 'Offline', region: 'US-East', load: '0%' },
   
-  // Team Khalid Servers
-  { id: 5, team: 'Khalid', name: 's_wmn3_2156', dateEntre: '24/02/2026', noticeDate: '17/05/2026', noticeDateWarning: true },
-  { id: 6, team: 'Khalid', name: 's_wmn3_2158', dateEntre: '26/02/2026', noticeDate: '18/06/2026', noticeDateWarning: false },
-  { id: 7, team: 'Khalid', name: 's_wmn3_2162', dateEntre: '27/02/2026', noticeDate: '20/05/2026', noticeDateWarning: true },
-  { id: 8, team: 'Khalid', name: 's_wmn3_2169', dateEntre: '02/03/2026', noticeDate: '20/02/2026', noticeDateWarning: true },
+  // Team Amine Servers
+  { id: 4, team: 'Amine', name: 'SRV-AMN-001', ip: '192.168.20.1', status: 'Online', region: 'US-East', load: '78%' },
+  { id: 5, team: 'Amine', name: 'SRV-AMN-002', ip: '192.168.20.2', status: 'Maintenance', region: 'Asia', load: '0%' },
 ];
 
 const initialDrops = [
@@ -186,99 +183,41 @@ export default function DatabasePage() {
         )}
 
         {activeTab === 'servers' && (
-          <div className="servers-dashboard">
-            {/* REDA Panel */}
-            <div className="team-panel">
-              <div className="panel-header">
-                <div className="panel-title">
-                  <h3>REDA</h3>
-                  <button className="copy-btn"><span className="icon">📄</span> <span className="warning-text">Copy Expiring</span></button>
-                </div>
-                <div className="panel-stats">
-                  <div className="stat-group">
-                    <span className="stat-label">ACTIVE</span>
-                    <span className="stat-value text-green">18 Servers</span>
-                  </div>
-                  <div className="stat-group text-right">
-                    <span className="stat-label">MONTH DEL.</span>
-                    <span className="stat-value text-red">5</span>
-                  </div>
-                </div>
-              </div>
-              <table className="panel-table">
-                <thead>
-                  <tr>
-                    <th>SERVERS</th>
-                    <th>DateEntre</th>
-                    <th>Notice Date</th>
-                    <th className="text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredServers.filter(s => s.team === 'Reda').map(s => (
-                    <tr key={s.id}>
-                      <td className="font-mono">{s.name}</td>
-                      <td>{s.dateEntre}</td>
-                      <td className={s.noticeDateWarning ? 'text-red' : ''}>
-                        {s.noticeDateWarning && <span className="warning-icon">⚠️</span>}
-                        {s.noticeDate}
-                      </td>
-                      <td className="text-right">
-                        <button className="action-btn btn-edit">Edit</button>
-                        <button className="action-btn btn-del">Del</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* KHALID Panel */}
-            <div className="team-panel">
-              <div className="panel-header">
-                <div className="panel-title">
-                  <h3>KHALID</h3>
-                  <button className="copy-btn"><span className="icon">📄</span> <span className="warning-text">Copy Expiring</span></button>
-                </div>
-                <div className="panel-stats">
-                  <div className="stat-group">
-                    <span className="stat-label">ACTIVE</span>
-                    <span className="stat-value text-green">21 Servers</span>
-                  </div>
-                  <div className="stat-group text-right">
-                    <span className="stat-label">MONTH DEL.</span>
-                    <span className="stat-value text-red">1</span>
-                  </div>
-                </div>
-              </div>
-              <table className="panel-table">
-                <thead>
-                  <tr>
-                    <th>SERVERS</th>
-                    <th>DateEntre</th>
-                    <th>Notice Date</th>
-                    <th className="text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredServers.filter(s => s.team === 'Khalid').map(s => (
-                    <tr key={s.id}>
-                      <td className="font-mono">{s.name}</td>
-                      <td>{s.dateEntre}</td>
-                      <td className={s.noticeDateWarning ? 'text-red' : ''}>
-                        {s.noticeDateWarning && <span className="warning-icon">⚠️</span>}
-                        {s.noticeDate}
-                      </td>
-                      <td className="text-right">
-                        <button className="action-btn btn-edit">Edit</button>
-                        <button className="action-btn btn-del">Del</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <table className="db-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Team</th>
+                <th>Name</th>
+                <th>IP Address</th>
+                <th>Region</th>
+                <th>Load</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredServers.map(s => (
+                <tr key={s.id}>
+                  <td className="td-id">#{s.id}</td>
+                  <td><span className={`role-badge`}>{s.team}</span></td>
+                  <td className="td-name">{s.name}</td>
+                  <td className="td-mono">{s.ip}</td>
+                  <td>{s.region}</td>
+                  <td>
+                    <div className="load-bar-container">
+                      <div className="load-bar" style={{ width: s.load }}></div>
+                      <span className="load-text">{s.load}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className={`status-badge status-${s.status.toLowerCase()}`}>
+                      {s.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
 
         {activeTab === 'drops' && (

@@ -1,0 +1,225 @@
+.inventory-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.inventory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-icon {
+  font-size: 1.25rem;
+  color: #38bdf8;
+}
+
+.inventory-header h1 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.expand-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.panels-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.team-panel {
+  background: #111420;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+.reda-panel .panel-header {
+  background: linear-gradient(to right, rgba(46, 37, 77, 0.8), rgba(26, 28, 41, 0.9));
+}
+
+.amine-panel .panel-header {
+  background: linear-gradient(to right, rgba(20, 52, 45, 0.8), rgba(26, 28, 41, 0.9));
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.team-title-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.team-title-section h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fff;
+  margin: 0;
+}
+
+.copy-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-muted);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.expiring-btn {
+  background: transparent;
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  color: #fbbf24;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.team-stats {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.stat-label {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.active-val { color: #34d399; }
+.del-val { color: #f87171; }
+
+.inventory-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.inventory-table th {
+  text-align: left;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.actions-header {
+  text-align: right !important;
+}
+
+.inventory-table td {
+  padding: 0.85rem 1.25rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.inventory-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.server-id {
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.server-date {
+  color: #94a3b8;
+}
+
+.notice-warning-red {
+  color: #f87171;
+  font-weight: 600;
+}
+
+.notice-warning-yellow {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.server-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.action-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid;
+}
+
+.edit-btn {
+  background: transparent;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.del-btn {
+  background: rgba(220, 38, 38, 0.1);
+  color: #ef4444;
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+.del-btn:hover {
+  background: rgba(220, 38, 38, 0.2);
+}
+
+.edit-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
