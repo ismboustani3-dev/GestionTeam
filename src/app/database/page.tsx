@@ -21,11 +21,14 @@ const initialRevenues = [
 ];
 
 const initialServers = [
-  { id: 1, name: 'SRV-001', ip: '192.168.1.10', status: 'Online', region: 'EU-West', load: '45%' },
-  { id: 2, name: 'SRV-002', ip: '192.168.1.11', status: 'Online', region: 'EU-West', load: '62%' },
-  { id: 3, name: 'SRV-003', ip: '192.168.1.12', status: 'Offline', region: 'US-East', load: '0%' },
-  { id: 4, name: 'SRV-004', ip: '192.168.1.13', status: 'Online', region: 'US-East', load: '78%' },
-  { id: 5, name: 'SRV-005', ip: '192.168.1.14', status: 'Maintenance', region: 'Asia', load: '0%' },
+  // Team Reda Servers
+  { id: 1, team: 'Reda', name: 'SRV-RED-001', ip: '192.168.10.1', status: 'Online', region: 'EU-West', load: '45%' },
+  { id: 2, team: 'Reda', name: 'SRV-RED-002', ip: '192.168.10.2', status: 'Online', region: 'EU-West', load: '62%' },
+  { id: 3, team: 'Reda', name: 'SRV-RED-003', ip: '192.168.10.3', status: 'Offline', region: 'US-East', load: '0%' },
+  
+  // Team Amine Servers
+  { id: 4, team: 'Amine', name: 'SRV-AMN-001', ip: '192.168.20.1', status: 'Online', region: 'US-East', load: '78%' },
+  { id: 5, team: 'Amine', name: 'SRV-AMN-002', ip: '192.168.20.2', status: 'Maintenance', region: 'Asia', load: '0%' },
 ];
 
 const initialDrops = [
@@ -184,6 +187,7 @@ export default function DatabasePage() {
             <thead>
               <tr>
                 <th>ID</th>
+                <th>Team</th>
                 <th>Name</th>
                 <th>IP Address</th>
                 <th>Region</th>
@@ -195,6 +199,7 @@ export default function DatabasePage() {
               {filteredServers.map(s => (
                 <tr key={s.id}>
                   <td className="td-id">#{s.id}</td>
+                  <td><span className={`role-badge`}>{s.team}</span></td>
                   <td className="td-name">{s.name}</td>
                   <td className="td-mono">{s.ip}</td>
                   <td>{s.region}</td>
