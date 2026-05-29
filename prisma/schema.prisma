@@ -1,0 +1,26 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Mailer {
+  id        Int       @id @default(autoincrement())
+  name      String
+  revenues  Revenue[]
+}
+
+model Revenue {
+  id        Int      @id @default(autoincrement())
+  amount    Float
+  date      DateTime @default(now())
+  mailerId  Int
+  mailer    Mailer   @relation(fields: [mailerId], references: [id])
+}
