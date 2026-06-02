@@ -121,7 +121,7 @@ export default function DatabasePage() {
 
   const deletedServers = currentTeam?.servers.filter(s => s.status === 'deleted') || [];
   
-  const monthDelCount = activeServers.filter(s => s.dateSortie && isCurrentMonth(s.dateSortie)).length;
+  const monthDelCount = deletedServers.filter(s => s.dateSortie && isCurrentMonth(s.dateSortie)).length;
   const monthNewCount = activeServers.filter(s => s.dateEntre && isCurrentMonth(s.dateEntre)).length;
   const currentMonthName = new Date().toLocaleString('en-US', { month: 'short' });
 
