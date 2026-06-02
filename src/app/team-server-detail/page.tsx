@@ -64,15 +64,14 @@ function getNoticeColorClass(dateStr: string): string {
   if (!d) return 'normal';
   
   const now = new Date();
-  // reset time to midnight for accurate day diff
   now.setHours(0, 0, 0, 0);
   d.setHours(0, 0, 0, 0);
   
   const diffTime = d.getTime() - now.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
-  if (diffDays <= 3) return 'urgent';
-  if (diffDays <= 7) return 'warning';
+  if (diffDays >= 1 && diffDays <= 3) return 'urgent';
+  if (diffDays >= 4 && diffDays <= 7) return 'warning';
   return 'normal';
 }
 
