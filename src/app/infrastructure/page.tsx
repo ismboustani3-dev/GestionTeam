@@ -83,6 +83,7 @@ export default function InfrastructurePage() {
       const data = await response.json();
       
       if (data.results) {
+        // Update teams state
         setTeams(prev => prev.map(t => ({
           ...t,
           servers: t.servers.map(s => {
@@ -98,6 +99,68 @@ export default function InfrastructurePage() {
             return s;
           })
         })));
+
+        // Build Telegram notification for failed IPs
+        const failedByServer: { serverName: string; failedIps: { ip: string; ptr: string }[] }[] = [];
+
+        data.results.forEach((result: any) => {
+          const server = activeServers.find(s => s.id === result.serverId);
+          if (!server) return;
+
+          const failedQueries = (result.queries || []).filter(
+            (q: any) => q.type === 'PTR' && q.match !== 'OK'
+          );
+
+          if (failedQueries.length > 0) {
+            failedByServer.push({
+              serverName: server.serverName,
+              failedIps: failedQueries.map((q: any) => ({
+                ip: q.query,
+                ptr: q.result || 'No Record'
+              }))
+            });
+          }
+        });
+
+        // Send Telegram notification
+        if (failedByServer.length > 0) {
+          const now = new Date().toLocaleString('en-US');
+          let msg = `🔴 <b>RDNS ALERT — Team ${activeTeam}</b>\n`;
+          msg += `📅 ${now}\n\n`;
+
+          failedByServer.forEach(entry => {
+            msg += `🖥️ <b>${entry.serverName}</b>\n`;
+            entry.failedIps.forEach(ip => {
+              msg += `   ❌ ${ip.ip} → ${ip.ptr}\n`;
+            });
+            msg += `\n`;
+          });
+
+          msg += `⚠️ Total: ${failedByServer.reduce((sum, e) => sum + e.failedIps.length, 0)} failed IPs across ${failedByServer.length} servers`;
+
+          try {
+            await fetch('/api/telegram', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: msg })
+            });
+          } catch (telegramErr) {
+            console.error('Telegram notification failed:', telegramErr);
+          }
+        } else {
+          // All OK — send success message
+          const now = new Date().toLocaleString('en-US');
+          const msg = `✅ <b>RDNS CHECK PASSED — Team ${activeTeam}</b>\n📅 ${now}\n\nAll IPs have valid RDNS records! 🎉`;
+          try {
+            await fetch('/api/telegram', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: msg })
+            });
+          } catch (telegramErr) {
+            console.error('Telegram notification failed:', telegramErr);
+          }
+        }
       }
     } catch (e) {
       console.error(e);
