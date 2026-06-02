@@ -4,6 +4,7 @@
   gap: 1.5rem;
 }
 
+/* Header */
 .db-header {
   display: flex;
   justify-content: space-between;
@@ -26,17 +27,219 @@
   font-size: 0.9rem;
 }
 
+.db-stats {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.db-stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.stat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-green { background: #34d399; box-shadow: 0 0 6px rgba(52, 211, 153, 0.5); }
+.dot-blue { background: #38bdf8; box-shadow: 0 0 6px rgba(56, 189, 248, 0.5); }
+
+/* Toolbar */
+.db-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.db-tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.db-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.25rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.db-tab:hover {
+  background: var(--glass-hover);
+  color: var(--text-primary);
+  transform: translateY(-2px);
+}
+
+.db-tab.active {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+}
+
+.tab-badge {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.15rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.db-tab.active .tab-badge {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+}
+
+/* Search */
+.db-search {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.db-search:focus-within {
+  border-color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.15);
+}
+
+.search-icon {
+  font-size: 0.9rem;
+  opacity: 0.6;
+}
+
+.search-input {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.9rem;
+  width: 200px;
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Table */
+.db-table-container {
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.db-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.db-table thead {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.db-table th {
+  text-align: left;
+  padding: 1rem 1.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.db-table td {
+  padding: 1rem 1.25rem;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+}
+
+.db-table tbody tr {
+  transition: background 0.2s ease;
+}
+
+.db-table tbody tr:hover {
+  background: var(--glass-hover);
+}
+
+.db-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.td-id {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.td-ip {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.5px;
+}
+
+.td-date {
+  color: #94a3b8;
+}
+
+/* Age badges */
+.age-badge {
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.age-new {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+}
+
+.age-mid {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+
+.age-old {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+
+/* Empty state */
 .db-empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 5rem 2rem;
-  background: var(--glass-bg);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid var(--glass-border);
-  border-radius: 16px;
   text-align: center;
 }
 
@@ -56,4 +259,17 @@
 .db-empty-state p {
   color: var(--text-muted);
   font-size: 0.9rem;
+}
+
+/* Footer */
+.db-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.5rem;
+}
+
+.db-footer-info {
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
