@@ -49,6 +49,8 @@ export default function DatabasePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterField, setFilterField] = useState<'all' | 'ip' | 'provider' | 'asn'>('all');
   const [showForm, setShowForm] = useState(false);
+  const [showBulk, setShowBulk] = useState(false);
+  const [bulkText, setBulkText] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -104,6 +106,41 @@ export default function DatabasePage() {
 
     setFormData({ mainIp: '', provider: '', asn: '', dateEntre: '', dateSortie: '', nbrIps: '', classType: '' });
     setShowForm(false);
+  };
+
+  // Bulk import handler
+  // Format per line: MainIP , Provider , ASN , DateEntre , DateSortie , NbrIPs , Class
+  const handleBulkImport = () => {
+    const lines = bulkText.trim().split('\n').filter(l => l.trim());
+    const newServers: Server[] = [];
+
+    for (const line of lines) {
+      const parts = line.split(',').map(p => p.trim());
+      if (parts.length >= 1 && parts[0]) {
+        newServers.push({
+          id: Date.now() + Math.random(),
+          mainIp: parts[0] || '',
+          provider: parts[1] || '',
+          asn: parts[2] || '',
+          dateEntre: parts[3] || '',
+          dateSortie: parts[4] || '',
+          nbrIps: Number(parts[5]) || 0,
+          classType: parts[6] || '',
+        });
+      }
+    }
+
+    if (newServers.length > 0) {
+      setTeams(prev =>
+        prev.map(t =>
+          t.name === activeTeam
+            ? { ...t, servers: [...t.servers, ...newServers] }
+            : t
+        )
+      );
+      setBulkText('');
+      setShowBulk(false);
+    }
   };
 
   const handleDeleteServer = (serverId: number) => {
@@ -175,11 +212,34 @@ export default function DatabasePage() {
               className="search-input"
             />
           </div>
-          <button className="add-server-btn" onClick={() => setShowForm(!showForm)}>
+          <button className="add-server-btn" onClick={() => { setShowForm(!showForm); setShowBulk(false); }}>
             {showForm ? '✕ Cancel' : '+ Add Server'}
+          </button>
+          <button className="bulk-import-btn" onClick={() => { setShowBulk(!showBulk); setShowForm(false); }}>
+            {showBulk ? '✕ Cancel' : '📋 Bulk Import'}
           </button>
         </div>
       </div>
+
+      {/* Bulk Import */}
+      {showBulk && (
+        <div className="bulk-form animate-fade-in">
+          <h3>📋 Bulk Import Servers to {activeTeam}</h3>
+          <p className="bulk-hint">Paste one server per line. Format: <code>IP , Provider , ASN , DateEntre , DateSortie , NbrIPs , Class</code></p>
+          <p className="bulk-example">Example: <code>192.168.1.1 , OVH , AS16276 , 01/03/2026 , , 256 , C</code></p>
+          <textarea
+            className="bulk-textarea"
+            rows={10}
+            placeholder={'192.168.1.1 , OVH , AS16276 , 01/03/2026 , , 256 , C\n10.0.0.1 , Hetzner , AS24940 , 15/02/2026 , , 512 , B\n172.16.0.1 , AWS , AS16509 , 20/01/2026 , 01/06/2026 , 128 , A'}
+            value={bulkText}
+            onChange={(e) => setBulkText(e.target.value)}
+          />
+          <div className="bulk-actions">
+            <span className="bulk-count">{bulkText.trim().split('\n').filter(l => l.trim()).length} server(s) detected</span>
+            <button className="submit-btn" onClick={handleBulkImport}>✓ Import All</button>
+          </div>
+        </div>
+      )}
 
       {/* Add Server Form */}
       {showForm && (
