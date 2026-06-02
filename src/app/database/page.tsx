@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './Database.css';
 
 interface Server {
@@ -54,6 +54,27 @@ export default function DatabasePage() {
     { name: 'REDA', servers: [] },
     { name: 'AMINE', servers: [] },
   ]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load from localStorage on initial mount
+  useEffect(() => {
+    const saved = localStorage.getItem('gestiq_teams_data');
+    if (saved) {
+      try {
+        setTeams(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to load saved data");
+      }
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // Save to localStorage whenever teams change
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem('gestiq_teams_data', JSON.stringify(teams));
+    }
+  }, [teams, isLoaded]);
 
   const [activeTeam, setActiveTeam] = useState<string>('REDA');
   const [searchTerm, setSearchTerm] = useState('');
