@@ -511,3 +511,105 @@
   font-size: 0.8rem;
   color: var(--text-muted);
 }
+
+/* --- Cancellations Feature Styles --- */
+
+.cancel-tab {
+  background: rgba(248, 113, 113, 0.05);
+  border-color: rgba(248, 113, 113, 0.2);
+}
+.cancel-tab:hover {
+  background: rgba(248, 113, 113, 0.1);
+  color: #f87171;
+}
+.cancel-tab.active {
+  background: rgba(248, 113, 113, 0.15);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #f87171;
+}
+.cancel-tab.active .tab-badge {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+
+.cancel-chip {
+  border-color: rgba(248, 113, 113, 0.3);
+}
+.dot-red {
+  background: #f87171;
+  box-shadow: 0 0 6px rgba(248, 113, 113, 0.5);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.cancel-action-btn {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s ease;
+}
+.cancel-action-btn:hover {
+  background: rgba(245, 158, 11, 0.25);
+}
+
+.restore-btn {
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  color: #34d399;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s ease;
+}
+.restore-btn:hover {
+  background: rgba(52, 211, 153, 0.25);
+}
+
+.cancellations-view {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.month-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.month-header {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  border-bottom: 2px solid rgba(248, 113, 113, 0.3);
+  padding-bottom: 0.5rem;
+  display: inline-block;
+  width: max-content;
+}
+
+.cancel-table thead {
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.team-badge {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.highlight-red {
+  color: #f87171;
+  font-weight: 600;
+}

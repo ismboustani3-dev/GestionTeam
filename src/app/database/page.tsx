@@ -13,11 +13,13 @@ interface Server {
   dateSortie: string;
   nbrIps: number;
   classType: string;
+  status?: 'active' | 'to_cancel';
 }
 
 function parseDate(dateStr: string): Date | null {
   if (!dateStr) return null;
   const [day, month, year] = dateStr.split('/').map(Number);
+  if (!year || !month) return null;
   return new Date(year, month - 1, day);
 }
 
@@ -33,6 +35,12 @@ function getAgeClass(days: number): string {
   if (days >= 90) return 'age-old';
   if (days >= 30) return 'age-mid';
   return 'age-new';
+}
+
+function getMonthYear(dateStr: string): string {
+  const d = parseDate(dateStr);
+  if (!d) return 'Unknown Date';
+  return d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
 }
 
 // Auto-calculate class based on number of IPs
@@ -98,6 +106,8 @@ export default function DatabasePage() {
   const currentTeam = teams.find(t => t.name === activeTeam);
 
   const filteredServers = currentTeam?.servers.filter(s => {
+    if (s.status === 'to_cancel') return false; // Hide cancelled servers in active view
+    
     const term = searchTerm.toLowerCase();
     if (!term) return true;
     if (filterField === 'ip') return s.mainIp.toLowerCase().includes(term);
@@ -111,7 +121,8 @@ export default function DatabasePage() {
     );
   }) || [];
 
-  const totalServers = teams.reduce((sum, t) => sum + t.servers.length, 0);
+  const totalServers = teams.reduce((sum, t) => sum + t.servers.filter(s => s.status !== 'to_cancel').length, 0);
+  const totalCancellations = teams.reduce((sum, t) => sum + t.servers.filter(s => s.status === 'to_cancel').length, 0);
 
   const handleAddServer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,6 +139,7 @@ export default function DatabasePage() {
       dateSortie: formData.dateSortie,
       nbrIps: nbrIps,
       classType: getClassFromIps(nbrIps),
+      status: formData.dateSortie ? 'to_cancel' : 'active',
     };
 
     setTeams(prev =>
@@ -143,7 +155,6 @@ export default function DatabasePage() {
   };
 
   // Bulk import handler
-  // Format per line: ServerName , MainIP , Provider , ASN , DateEntre , DateSortie , NbrIPs , Class
   const handleBulkImport = () => {
     const lines = bulkText.trim().split('\n').filter(l => l.trim());
     const newServers: Server[] = [];
@@ -152,6 +163,7 @@ export default function DatabasePage() {
       const parts = line.split(',').map(p => p.trim());
       if (parts.length >= 2 && parts[1]) {
         const nbrIps = Number(parts[6]) || 0;
+        const dateSortie = parts[5] || '';
         newServers.push({
           id: Date.now() + Math.random(),
           serverName: parts[0] || '',
@@ -159,9 +171,10 @@ export default function DatabasePage() {
           provider: parts[2] || '',
           asn: parts[3] || '',
           dateEntre: parts[4] || '',
-          dateSortie: parts[5] || '',
+          dateSortie: dateSortie,
           nbrIps: nbrIps,
           classType: getClassFromIps(nbrIps),
+          status: dateSortie ? 'to_cancel' : 'active',
         });
       }
     }
@@ -179,15 +192,68 @@ export default function DatabasePage() {
     }
   };
 
-  const handleDeleteServer = (serverId: number) => {
+  const handleDeleteServer = (serverId: number, teamName: string) => {
+    if(!window.confirm("Are you sure you want to permanently delete this server?")) return;
     setTeams(prev =>
       prev.map(t =>
-        t.name === activeTeam
+        t.name === teamName
           ? { ...t, servers: t.servers.filter(s => s.id !== serverId) }
           : t
       )
     );
   };
+
+  const handleMarkToCancel = (serverId: number) => {
+    let dateSortie = window.prompt("Enter Date Sortie (DD/MM/YYYY):");
+    if (dateSortie === null) return; // User cancelled prompt
+    if (dateSortie.trim() === '') {
+      alert("You must provide a Date Sortie to cancel a server.");
+      return;
+    }
+
+    setTeams(prev =>
+      prev.map(t =>
+        t.name === activeTeam
+          ? {
+              ...t,
+              servers: t.servers.map(s => s.id === serverId ? { ...s, status: 'to_cancel', dateSortie } : s)
+            }
+          : t
+      )
+    );
+  };
+
+  const handleRestore = (serverId: number, teamName: string) => {
+    setTeams(prev =>
+      prev.map(t =>
+        t.name === teamName
+          ? {
+              ...t,
+              servers: t.servers.map(s => s.id === serverId ? { ...s, status: 'active', dateSortie: '' } : s)
+            }
+          : t
+      )
+    );
+  };
+
+  // Group cancellations by month
+  const cancellationsByMonth: Record<string, { team: string, server: Server }[]> = {};
+  if (activeTeam === 'CANCELLATIONS') {
+    teams.forEach(t => {
+      t.servers.filter(s => s.status === 'to_cancel').forEach(s => {
+        const month = getMonthYear(s.dateSortie);
+        if (!cancellationsByMonth[month]) cancellationsByMonth[month] = [];
+        cancellationsByMonth[month].push({ team: t.name, server: s });
+      });
+    });
+  }
+
+  // Sort months chronologically (simplistic sort by parsing back to date)
+  const sortedMonths = Object.keys(cancellationsByMonth).sort((a, b) => {
+    const da = new Date(a);
+    const db = new Date(b);
+    return (isNaN(da.getTime()) ? 0 : da.getTime()) - (isNaN(db.getTime()) ? 0 : db.getTime());
+  });
 
   return (
     <div className="database-page animate-fade-in">
@@ -200,12 +266,16 @@ export default function DatabasePage() {
           {teams.map(team => (
             <div key={team.name} className="db-stat-chip">
               <span className="stat-dot dot-green"></span>
-              {team.name}: {team.servers.length}
+              {team.name}: {team.servers.filter(s => s.status !== 'to_cancel').length}
             </div>
           ))}
+          <div className="db-stat-chip cancel-chip">
+            <span className="stat-dot dot-red"></span>
+            Cancellations: {totalCancellations}
+          </div>
           <div className="db-stat-chip">
             <span className="stat-dot dot-blue"></span>
-            Total: {totalServers}
+            Total Active: {totalServers}
           </div>
         </div>
       </header>
@@ -220,198 +290,268 @@ export default function DatabasePage() {
             >
               <span>👥</span>
               <span>{team.name}</span>
-              <span className="tab-badge">{team.servers.length}</span>
+              <span className="tab-badge">{team.servers.filter(s => s.status !== 'to_cancel').length}</span>
             </button>
           ))}
-        </div>
-
-        <div className="db-toolbar-right">
-          <div className="db-filter">
-            <select
-              className="filter-select"
-              value={filterField}
-              onChange={(e) => setFilterField(e.target.value as 'all' | 'ip' | 'provider' | 'asn')}
-            >
-              <option value="all">All Fields</option>
-              <option value="ip">IP</option>
-              <option value="provider">Provider</option>
-              <option value="asn">ASN</option>
-            </select>
-          </div>
-          <div className="db-search">
-            <span className="search-icon">🔍</span>
-            <input
-              type="text"
-              placeholder={`Search ${filterField === 'all' ? 'servers' : filterField}...`}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
-          </div>
-          <button className="add-server-btn" onClick={() => { setShowForm(!showForm); setShowBulk(false); }}>
-            {showForm ? '✕ Cancel' : '+ Add Server'}
-          </button>
-          <button className="bulk-import-btn" onClick={() => { setShowBulk(!showBulk); setShowForm(false); }}>
-            {showBulk ? '✕ Cancel' : '📋 Bulk Import'}
+          <button
+            className={`db-tab cancel-tab ${activeTeam === 'CANCELLATIONS' ? 'active' : ''}`}
+            onClick={() => setActiveTeam('CANCELLATIONS')}
+          >
+            <span>❌</span>
+            <span>Cancellations</span>
+            <span className="tab-badge">{totalCancellations}</span>
           </button>
         </div>
-      </div>
 
-      {/* Bulk Import */}
-      {showBulk && (
-        <div className="bulk-form animate-fade-in">
-          <h3>📋 Bulk Import Servers to {activeTeam}</h3>
-          <p className="bulk-hint">Paste one server per line. Format: <code>ServerName , IP , Provider , ASN , DateEntre , DateSortie , NbrIPs , Class</code></p>
-          <p className="bulk-example">Example: <code>SRV-01 , 192.168.1.1 , OVH , AS16276 , 01/03/2026 , , 256 , C</code></p>
-          <textarea
-            className="bulk-textarea"
-            rows={10}
-            placeholder={'SRV-01 , 192.168.1.1 , OVH , AS16276 , 01/03/2026 , , 256 , C\nSRV-02 , 10.0.0.1 , Hetzner , AS24940 , 15/02/2026 , , 512 , B\nSRV-03 , 172.16.0.1 , AWS , AS16509 , 20/01/2026 , 01/06/2026 , 128 , A'}
-            value={bulkText}
-            onChange={(e) => setBulkText(e.target.value)}
-          />
-          <div className="bulk-actions">
-            <span className="bulk-count">{bulkText.trim().split('\n').filter(l => l.trim()).length} server(s) detected</span>
-            <button className="submit-btn" onClick={handleBulkImport}>✓ Import All</button>
-          </div>
-        </div>
-      )}
-
-      {/* Add Server Form */}
-      {showForm && (
-        <form className="add-form animate-fade-in" onSubmit={handleAddServer}>
-          <h3>➕ Add Server to {activeTeam}</h3>
-          <div className="form-grid">
-            <div className="form-group">
-              <label>Server Name</label>
+        {activeTeam !== 'CANCELLATIONS' && (
+          <div className="db-toolbar-right">
+            <div className="db-filter">
+              <select
+                className="filter-select"
+                value={filterField}
+                onChange={(e) => setFilterField(e.target.value as 'all' | 'ip' | 'provider' | 'asn')}
+              >
+                <option value="all">All Fields</option>
+                <option value="ip">IP</option>
+                <option value="provider">Provider</option>
+                <option value="asn">ASN</option>
+              </select>
+            </div>
+            <div className="db-search">
+              <span className="search-icon">🔍</span>
               <input
                 type="text"
-                placeholder="SRV-01"
-                value={formData.serverName}
-                onChange={(e) => setFormData({ ...formData, serverName: e.target.value })}
+                placeholder={`Search ${filterField === 'all' ? 'servers' : filterField}...`}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
               />
             </div>
-            <div className="form-group">
-              <label>Main IP *</label>
-              <input
-                type="text"
-                placeholder="192.168.1.1"
-                value={formData.mainIp}
-                onChange={(e) => setFormData({ ...formData, mainIp: e.target.value })}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Provider</label>
-              <input
-                type="text"
-                placeholder="OVH, Hetzner..."
-                value={formData.provider}
-                onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label>ASN</label>
-              <input
-                type="text"
-                placeholder="AS16276"
-                value={formData.asn}
-                onChange={(e) => setFormData({ ...formData, asn: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label>Date Entrée * (DD/MM/YYYY)</label>
-              <input
-                type="text"
-                placeholder="01/03/2026"
-                value={formData.dateEntre}
-                onChange={(e) => setFormData({ ...formData, dateEntre: e.target.value })}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Date Sortie (DD/MM/YYYY)</label>
-              <input
-                type="text"
-                placeholder="Leave empty if active"
-                value={formData.dateSortie}
-                onChange={(e) => setFormData({ ...formData, dateSortie: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label>Nbr IPs</label>
-              <input
-                type="number"
-                placeholder="6"
-                value={formData.nbrIps}
-                onChange={(e) => setFormData({ ...formData, nbrIps: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label>Class (auto)</label>
-              <div className="auto-class-display">
-                {formData.nbrIps ? getClassFromIps(Number(formData.nbrIps)) : '—'}
-              </div>
-            </div>
-          </div>
-          <button type="submit" className="submit-btn">✓ Add Server</button>
-        </form>
-      )}
-
-      <div className="db-table-container">
-        {filteredServers.length > 0 ? (
-          <table className="db-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Server</th>
-                <th>Main IP</th>
-                <th>Date Entrée</th>
-                <th>Date Sortie</th>
-                <th>Age Server</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredServers.map((s, idx) => {
-                const ageDays = calculateAge(s.dateEntre);
-                return (
-                  <tr key={s.id}>
-                    <td className="td-id">{idx + 1}</td>
-                    <td className="td-name">{s.serverName || '—'}</td>
-                    <td className="td-ip">{s.mainIp}</td>
-                    <td className="td-date">{s.dateEntre}</td>
-                    <td className="td-date">{s.dateSortie || '—'}</td>
-                    <td>
-                      <span className={`age-badge ${getAgeClass(ageDays)}`}>
-                        {ageDays} jours
-                      </span>
-                    </td>
-                    <td>
-                      <button className="del-btn" onClick={() => handleDeleteServer(s.id)}>
-                        🗑️
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        ) : (
-          <div className="db-empty-state">
-            <span className="empty-icon">🗄️</span>
-            <h2>No servers yet for {activeTeam}</h2>
-            <p>Click &quot;+ Add Server&quot; to start adding data</p>
+            <button className="add-server-btn" onClick={() => { setShowForm(!showForm); setShowBulk(false); }}>
+              {showForm ? '✕ Cancel' : '+ Add Server'}
+            </button>
+            <button className="bulk-import-btn" onClick={() => { setShowBulk(!showBulk); setShowForm(false); }}>
+              {showBulk ? '✕ Cancel' : '📋 Bulk Import'}
+            </button>
           </div>
         )}
       </div>
 
-      <div className="db-footer">
-        <span className="db-footer-info">
-          Team {activeTeam} — {filteredServers.length} server(s)
-        </span>
-        <span className="db-footer-info">Auto-calculated ages</span>
-      </div>
+      {activeTeam !== 'CANCELLATIONS' && (
+        <>
+          {/* Bulk Import */}
+          {showBulk && (
+            <div className="bulk-form animate-fade-in">
+              <h3>📋 Bulk Import Servers to {activeTeam}</h3>
+              <p className="bulk-hint">Paste one server per line. Format: <code>ServerName , IP , Provider , ASN , DateEntre , DateSortie , NbrIPs , Class</code></p>
+              <p className="bulk-example">Example: <code>SRV-01 , 192.168.1.1 , OVH , AS16276 , 01/03/2026 , , 256 , C</code></p>
+              <textarea
+                className="bulk-textarea"
+                rows={10}
+                placeholder={'SRV-01 , 192.168.1.1 , OVH , AS16276 , 01/03/2026 , , 256 , C\nSRV-02 , 10.0.0.1 , Hetzner , AS24940 , 15/02/2026 , , 512 , B\nSRV-03 , 172.16.0.1 , AWS , AS16509 , 20/01/2026 , 01/06/2026 , 128 , A'}
+                value={bulkText}
+                onChange={(e) => setBulkText(e.target.value)}
+              />
+              <div className="bulk-actions">
+                <span className="bulk-count">{bulkText.trim().split('\n').filter(l => l.trim()).length} server(s) detected</span>
+                <button className="submit-btn" onClick={handleBulkImport}>✓ Import All</button>
+              </div>
+            </div>
+          )}
+
+          {/* Add Server Form */}
+          {showForm && (
+            <form className="add-form animate-fade-in" onSubmit={handleAddServer}>
+              <h3>➕ Add Server to {activeTeam}</h3>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Server Name</label>
+                  <input
+                    type="text"
+                    placeholder="SRV-01"
+                    value={formData.serverName}
+                    onChange={(e) => setFormData({ ...formData, serverName: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Main IP *</label>
+                  <input
+                    type="text"
+                    placeholder="192.168.1.1"
+                    value={formData.mainIp}
+                    onChange={(e) => setFormData({ ...formData, mainIp: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Provider</label>
+                  <input
+                    type="text"
+                    placeholder="OVH, Hetzner..."
+                    value={formData.provider}
+                    onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>ASN</label>
+                  <input
+                    type="text"
+                    placeholder="AS16276"
+                    value={formData.asn}
+                    onChange={(e) => setFormData({ ...formData, asn: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Date Entrée * (DD/MM/YYYY)</label>
+                  <input
+                    type="text"
+                    placeholder="01/03/2026"
+                    value={formData.dateEntre}
+                    onChange={(e) => setFormData({ ...formData, dateEntre: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Date Sortie (DD/MM/YYYY)</label>
+                  <input
+                    type="text"
+                    placeholder="Leave empty if active"
+                    value={formData.dateSortie}
+                    onChange={(e) => setFormData({ ...formData, dateSortie: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Nbr IPs</label>
+                  <input
+                    type="number"
+                    placeholder="6"
+                    value={formData.nbrIps}
+                    onChange={(e) => setFormData({ ...formData, nbrIps: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Class (auto)</label>
+                  <div className="auto-class-display">
+                    {formData.nbrIps ? getClassFromIps(Number(formData.nbrIps)) : '—'}
+                  </div>
+                </div>
+              </div>
+              <button type="submit" className="submit-btn">✓ Add Server</button>
+            </form>
+          )}
+
+          <div className="db-table-container">
+            {filteredServers.length > 0 ? (
+              <table className="db-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Server</th>
+                    <th>Main IP</th>
+                    <th>Date Entrée</th>
+                    <th>Date Sortie</th>
+                    <th>Age Server</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredServers.map((s, idx) => {
+                    const ageDays = calculateAge(s.dateEntre);
+                    return (
+                      <tr key={s.id}>
+                        <td className="td-id">{idx + 1}</td>
+                        <td className="td-name">{s.serverName || '—'}</td>
+                        <td className="td-ip">{s.mainIp}</td>
+                        <td className="td-date">{s.dateEntre}</td>
+                        <td className="td-date">{s.dateSortie || '—'}</td>
+                        <td>
+                          <span className={`age-badge ${getAgeClass(ageDays)}`}>
+                            {ageDays} jours
+                          </span>
+                        </td>
+                        <td>
+                          <div className="action-buttons">
+                            <button className="cancel-action-btn" title="Mark to Cancel" onClick={() => handleMarkToCancel(s.id)}>
+                              ❌ Cancel
+                            </button>
+                            <button className="del-btn" title="Delete permanently" onClick={() => handleDeleteServer(s.id, activeTeam)}>
+                              🗑️
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="db-empty-state">
+                <span className="empty-icon">🗄️</span>
+                <h2>No active servers for {activeTeam}</h2>
+                <p>Click &quot;+ Add Server&quot; to start adding data</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="db-footer">
+            <span className="db-footer-info">
+              Team {activeTeam} — {filteredServers.length} active server(s)
+            </span>
+            <span className="db-footer-info">Auto-calculated ages</span>
+          </div>
+        </>
+      )}
+
+      {/* Cancellations View */}
+      {activeTeam === 'CANCELLATIONS' && (
+        <div className="cancellations-view animate-fade-in">
+          {sortedMonths.length === 0 ? (
+            <div className="db-empty-state">
+              <span className="empty-icon">✅</span>
+              <h2>No servers scheduled for cancellation</h2>
+            </div>
+          ) : (
+            sortedMonths.map(month => (
+              <div key={month} className="month-group">
+                <h3 className="month-header">📅 {month}</h3>
+                <div className="db-table-container">
+                  <table className="db-table cancel-table">
+                    <thead>
+                      <tr>
+                        <th>Team</th>
+                        <th>Server</th>
+                        <th>Main IP</th>
+                        <th>Date Sortie</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cancellationsByMonth[month].map(({ team, server }) => (
+                        <tr key={server.id}>
+                          <td><span className="team-badge">{team}</span></td>
+                          <td className="td-name">{server.serverName || '—'}</td>
+                          <td className="td-ip">{server.mainIp}</td>
+                          <td className="td-date highlight-red">{server.dateSortie}</td>
+                          <td>
+                            <div className="action-buttons">
+                              <button className="restore-btn" title="Restore to Active" onClick={() => handleRestore(server.id, team)}>
+                                ♻️ Restore
+                              </button>
+                              <button className="del-btn" title="Delete permanently" onClick={() => handleDeleteServer(server.id, team)}>
+                                🗑️
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
