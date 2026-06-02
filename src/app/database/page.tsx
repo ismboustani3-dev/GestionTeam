@@ -83,6 +83,7 @@ export default function DatabasePage() {
   const [filterField, setFilterField] = useState<'all' | 'ip' | 'provider' | 'asn'>('all');
   const [showForm, setShowForm] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
+  const [showBulkCancel, setShowBulkCancel] = useState(false);
   const [editingServerId, setEditingServerId] = useState<number | null>(null);
   const [bulkText, setBulkText] = useState('');
   const [bulkCancelText, setBulkCancelText] = useState('');
