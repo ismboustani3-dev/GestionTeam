@@ -1,0 +1,138 @@
+.infra-page {
+  padding: 2rem 3rem;
+  min-height: 100vh;
+  background-color: #0b1120;
+  color: #f8fafc;
+}
+
+.infra-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.infra-title h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+  color: #f8fafc;
+}
+
+.infra-title p {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.infra-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn-blue {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: opacity 0.2s;
+}
+
+.btn-blue:hover {
+  opacity: 0.9;
+}
+
+.btn-red {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: opacity 0.2s;
+}
+
+.btn-red:hover {
+  opacity: 0.9;
+}
+
+.infra-table-container {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.infra-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.infra-table th {
+  background: rgba(255, 255, 255, 0.02);
+  color: #f8fafc;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: left;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.infra-table td {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  color: #94a3b8;
+  vertical-align: middle;
+}
+
+.server-cell {
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+  font-weight: 600;
+  color: #38bdf8 !important;
+  vertical-align: top !important;
+  padding-top: 1rem !important;
+}
+
+.ip-cell {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 600;
+  color: #cbd5e1 !important;
+}
+
+.rdns-val {
+  color: #94a3b8;
+}
+
+.vmta-val {
+  color: #6366f1; /* purple/indigo for VMTA as seen in screenshot */
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.status-ok {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.status-fail {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.status-pending {
+  color: #eab308;
+  font-weight: 600;
+}

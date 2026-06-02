@@ -26,6 +26,10 @@ export default function Sidebar() {
             <span className="nav-icon">🖥️</span>
             Team Server Detail
           </Link>
+          <Link href="/infrastructure" className="nav-item">
+            <span className="nav-icon">🛡️</span>
+            Infrastructure Check
+          </Link>
         </nav>
       </div>
     </aside>
