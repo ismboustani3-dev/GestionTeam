@@ -84,6 +84,7 @@ export default function DatabasePage() {
   const [showForm, setShowForm] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
   const [showBulkCancel, setShowBulkCancel] = useState(false);
+  const [editingServerId, setEditingServerId] = useState<number | null>(null);
   const [bulkText, setBulkText] = useState('');
   const [bulkCancelText, setBulkCancelText] = useState('');
 
@@ -129,8 +130,8 @@ export default function DatabasePage() {
     if (!formData.mainIp || !formData.dateEntre) return;
 
     const nbrIps = Number(formData.nbrIps) || 0;
-    const newServer: Server = {
-      id: Date.now(),
+    const serverData: Server = {
+      id: editingServerId || Date.now(),
       serverName: formData.serverName,
       mainIp: formData.mainIp,
       provider: formData.provider,
@@ -145,13 +146,37 @@ export default function DatabasePage() {
     setTeams(prev =>
       prev.map(t =>
         t.name === activeTeam
-          ? { ...t, servers: [...t.servers, newServer] }
+          ? { 
+              ...t, 
+              servers: editingServerId 
+                ? t.servers.map(s => s.id === editingServerId ? { ...s, ...serverData } : s)
+                : [...t.servers, serverData]
+            }
           : t
       )
     );
 
     setFormData({ serverName: '', mainIp: '', provider: '', asn: '', dateEntre: '', dateSortie: '', nbrIps: '', classType: '' });
     setShowForm(false);
+    setEditingServerId(null);
+  };
+
+  const handleEditClick = (server: Server) => {
+    setEditingServerId(server.id);
+    setFormData({
+      serverName: server.serverName || '',
+      mainIp: server.mainIp || '',
+      provider: server.provider || '',
+      asn: server.asn || '',
+      dateEntre: server.dateEntre || '',
+      dateSortie: server.dateSortie || '',
+      nbrIps: server.nbrIps ? String(server.nbrIps) : '',
+      classType: server.classType || ''
+    });
+    setShowForm(true);
+    setShowBulk(false);
+    setShowBulkCancel(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleBulkImport = () => {
@@ -340,8 +365,16 @@ export default function DatabasePage() {
               className="search-input"
             />
           </div>
-          <button className="add-server-btn" onClick={() => { setShowForm(!showForm); setShowBulk(false); setShowBulkCancel(false); }}>
-            {showForm ? '✕ Cancel' : '+ Add Server'}
+          <button className="add-server-btn" onClick={() => { 
+            if (!showForm) {
+              setEditingServerId(null);
+              setFormData({ serverName: '', mainIp: '', provider: '', asn: '', dateEntre: '', dateSortie: '', nbrIps: '', classType: '' });
+            }
+            setShowForm(!showForm); 
+            setShowBulk(false); 
+            setShowBulkCancel(false); 
+          }}>
+            {showForm && !editingServerId ? '✕ Cancel' : '+ Add Server'}
           </button>
           <button className="bulk-import-btn" onClick={() => { setShowBulk(!showBulk); setShowForm(false); setShowBulkCancel(false); }}>
             {showBulk ? '✕ Cancel' : '📋 Bulk Import'}
@@ -391,10 +424,10 @@ export default function DatabasePage() {
         </div>
       )}
 
-      {/* Add Server Form */}
+      {/* Add / Edit Server Form */}
       {showForm && (
         <form className="add-form animate-fade-in" onSubmit={handleAddServer}>
-          <h3>➕ Add Server to {activeTeam}</h3>
+          <h3>{editingServerId ? `✏️ Edit Server in ${activeTeam}` : `➕ Add Server to ${activeTeam}`}</h3>
           <div className="form-grid">
             <div className="form-group">
               <label>Server Name</label>
@@ -468,7 +501,25 @@ export default function DatabasePage() {
               </div>
             </div>
           </div>
-          <button type="submit" className="submit-btn">✓ Add Server</button>
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+            <button type="submit" className="submit-btn">
+              {editingServerId ? '✓ Update Server' : '✓ Add Server'}
+            </button>
+            {editingServerId && (
+              <button 
+                type="button" 
+                className="minimal-btn" 
+                style={{ padding: '0.75rem 2rem', fontSize: '0.9rem', border: '1px solid var(--glass-border)' }}
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingServerId(null);
+                  setFormData({ serverName: '', mainIp: '', provider: '', asn: '', dateEntre: '', dateSortie: '', nbrIps: '', classType: '' });
+                }}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
         </form>
       )}
 
@@ -512,7 +563,7 @@ export default function DatabasePage() {
                     </td>
                     <td style={{textAlign: 'right'}}>
                       <div className="action-buttons-right">
-                        <button className="minimal-btn" title="Edit">Edit</button>
+                        <button className="minimal-btn" title="Edit" onClick={() => handleEditClick(s)}>Edit</button>
                         <button className="minimal-btn danger" title="Delete to History" onClick={() => handleDeleteToHistory(s.id)}>Del</button>
                       </div>
                     </td>
