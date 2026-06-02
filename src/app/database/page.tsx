@@ -129,6 +129,24 @@ export default function DatabasePage() {
     e.preventDefault();
     if (!formData.mainIp || !formData.dateEntre) return;
 
+    // Duplicate Check Function
+    const isDuplicate = (name: string, ip: string, excludeId?: number) => {
+      for (const t of teams) {
+        for (const s of t.servers) {
+          if (s.status === 'deleted') continue;
+          if (excludeId && s.id === excludeId) continue;
+          if (name && s.serverName && s.serverName.toLowerCase() === name.toLowerCase()) return true;
+          if (ip && s.mainIp === ip) return true;
+        }
+      }
+      return false;
+    };
+
+    if (isDuplicate(formData.serverName, formData.mainIp, editingServerId || undefined)) {
+      alert("A server with this Name or IP already exists in the active tables!");
+      return;
+    }
+
     const nbrIps = Number(formData.nbrIps) || 0;
     const serverData: Server = {
       id: editingServerId || Date.now(),
@@ -183,9 +201,33 @@ export default function DatabasePage() {
     const lines = bulkText.trim().split('\n').filter(l => l.trim());
     const newServers: Server[] = [];
 
+    const isDuplicateBatch = (name: string, ip: string) => {
+      // Check existing
+      for (const t of teams) {
+        for (const s of t.servers) {
+          if (s.status === 'deleted') continue;
+          if (name && s.serverName && s.serverName.toLowerCase() === name.toLowerCase()) return true;
+          if (ip && s.mainIp === ip) return true;
+        }
+      }
+      // Check already parsed in this batch
+      for (const s of newServers) {
+        if (name && s.serverName && s.serverName.toLowerCase() === name.toLowerCase()) return true;
+        if (ip && s.mainIp === ip) return true;
+      }
+      return false;
+    };
+
+    let skipped = 0;
+
     for (const line of lines) {
       const parts = line.split(',').map(p => p.trim());
       if (parts.length >= 2 && parts[1]) {
+        if (isDuplicateBatch(parts[0], parts[1])) {
+          skipped++;
+          continue;
+        }
+        
         const nbrIps = Number(parts[6]) || 0;
         const dateSortie = parts[5] || '';
         newServers.push({
@@ -197,10 +239,14 @@ export default function DatabasePage() {
           dateEntre: parts[4] || '',
           dateSortie: dateSortie,
           nbrIps: nbrIps,
-          classType: getClassFromIps(nbrIps),
-          status: 'active',
+          classType: parts[7] || getClassFromIps(nbrIps),
+          status: dateSortie ? 'deleted' : 'active',
         });
       }
+    }
+
+    if (skipped > 0) {
+      alert(`${skipped} server(s) were skipped because they already exist.`);
     }
 
     if (newServers.length > 0) {
