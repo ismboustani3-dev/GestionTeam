@@ -111,6 +111,31 @@ export default function TeamServerDetailPage() {
     );
   });
 
+  // Analytics computations
+  const totalServers = activeServers.length;
+  let totalIps = 0;
+  const providerStats: Record<string, number> = {};
+  const classStats: Record<string, number> = {};
+
+  activeServers.forEach(s => {
+    let count = 1;
+    if (s.ipDomains && s.ipDomains.length > 0) {
+      count += s.ipDomains.reduce((acc, curr) => acc + (curr.ips ? curr.ips.length : 0), 0);
+    }
+    totalIps += count;
+
+    const p = s.provider || 'Unknown';
+    providerStats[p] = (providerStats[p] || 0) + 1;
+
+    // The user wants 'Class 28', 'Class 29', etc.
+    const rawClass = getClassFromIps(count);
+    const cls = rawClass !== '—' ? `Class ${rawClass}` : 'Unknown';
+    classStats[cls] = (classStats[cls] || 0) + 1;
+  });
+
+  const providersList = Object.entries(providerStats).sort((a, b) => b[1] - a[1]);
+  const classesList = Object.entries(classStats).sort((a, b) => b[1] - a[1]);
+
   return (
     <div className="team-server-page animate-fade-in">
       <header className="page-header">
@@ -148,6 +173,55 @@ export default function TeamServerDetailPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
           />
+        </div>
+      </div>
+
+      <div className="detail-dashboard">
+        <div className="dash-card">
+          <h4>SERVERS</h4>
+          <div className="dash-value cyan">{totalServers}</div>
+        </div>
+        <div className="dash-card">
+          <h4>IP POOL</h4>
+          <div className="dash-value cyan">{totalIps}</div>
+        </div>
+        <div className="dash-card">
+          <h4>PROVIDERS</h4>
+          <div className="dash-list">
+            {providersList.map(([name, count]) => {
+              const pct = Math.round((count / totalServers) * 100);
+              return (
+                <div key={name} className="dash-list-item">
+                  <div className="dash-item-header">
+                    <span className="dash-name">{name}</span>
+                    <span className="dash-count cyan">{count} ({pct}%)</span>
+                  </div>
+                  <div className="dash-bar-bg">
+                    <div className="dash-bar-fill cyan-bg" style={{ width: `${pct}%` }}></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div className="dash-card">
+          <h4>CLASSES</h4>
+          <div className="dash-list">
+            {classesList.map(([name, count]) => {
+              const pct = Math.round((count / totalServers) * 100);
+              return (
+                <div key={name} className="dash-list-item">
+                  <div className="dash-item-header">
+                    <span className="dash-name">{name}</span>
+                    <span className="dash-count purple">{count} Servers ({pct}%)</span>
+                  </div>
+                  <div className="dash-bar-bg">
+                    <div className="dash-bar-fill purple-bg" style={{ width: `${pct}%` }}></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
