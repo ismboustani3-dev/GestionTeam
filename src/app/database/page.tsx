@@ -82,7 +82,10 @@ export default function DatabasePage() {
   const [filterField, setFilterField] = useState<'all' | 'ip' | 'provider' | 'asn'>('all');
   const [showForm, setShowForm] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
+  const [showBulkCancel, setShowBulkCancel] = useState(false);
   const [bulkText, setBulkText] = useState('');
+  const [bulkCancelText, setBulkCancelText] = useState('');
+  const [bulkCancelDate, setBulkCancelDate] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -184,6 +187,41 @@ export default function DatabasePage() {
       setBulkText('');
       setShowBulk(false);
     }
+  };
+
+  const handleBulkCancel = () => {
+    if (!bulkCancelDate.trim()) {
+      alert("Please provide a Date Sortie for the cancelled servers.");
+      return;
+    }
+    
+    // Extract server names (split by commas, newlines, or spaces)
+    const serverNamesToCancel = bulkCancelText
+      .split(/[\n, ]+/)
+      .map(s => s.trim().toLowerCase())
+      .filter(s => s);
+
+    if (serverNamesToCancel.length === 0) return;
+
+    setTeams(prev =>
+      prev.map(t =>
+        t.name === activeTeam
+          ? {
+              ...t,
+              servers: t.servers.map(s => {
+                if (serverNamesToCancel.includes(s.serverName.toLowerCase())) {
+                  return { ...s, status: 'deleted', dateSortie: bulkCancelDate };
+                }
+                return s;
+              })
+            }
+          : t
+      )
+    );
+
+    setBulkCancelText('');
+    setBulkCancelDate('');
+    setShowBulkCancel(false);
   };
 
   const handleDeleteToHistory = (serverId: number) => {
@@ -292,11 +330,14 @@ export default function DatabasePage() {
               className="search-input"
             />
           </div>
-          <button className="add-server-btn" onClick={() => { setShowForm(!showForm); setShowBulk(false); }}>
+          <button className="add-server-btn" onClick={() => { setShowForm(!showForm); setShowBulk(false); setShowBulkCancel(false); }}>
             {showForm ? '✕ Cancel' : '+ Add Server'}
           </button>
-          <button className="bulk-import-btn" onClick={() => { setShowBulk(!showBulk); setShowForm(false); }}>
+          <button className="bulk-import-btn" onClick={() => { setShowBulk(!showBulk); setShowForm(false); setShowBulkCancel(false); }}>
             {showBulk ? '✕ Cancel' : '📋 Bulk Import'}
+          </button>
+          <button className="bulk-cancel-btn" onClick={() => { setShowBulkCancel(!showBulkCancel); setShowBulk(false); setShowForm(false); }}>
+            {showBulkCancel ? '✕ Cancel' : '🗑️ Bulk Cancel'}
           </button>
         </div>
       </div>
@@ -317,6 +358,35 @@ export default function DatabasePage() {
           <div className="bulk-actions">
             <span className="bulk-count">{bulkText.trim().split('\n').filter(l => l.trim()).length} server(s) detected</span>
             <button className="submit-btn" onClick={handleBulkImport}>✓ Import All</button>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Cancel */}
+      {showBulkCancel && (
+        <div className="bulk-form cancel-bulk-form animate-fade-in">
+          <h3>🗑️ Bulk Cancel Servers for {activeTeam}</h3>
+          <p className="bulk-hint">Paste server names separated by space, comma, or new line. They will be moved to Deleted History.</p>
+          <div className="form-group" style={{ marginBottom: '1rem', width: '200px' }}>
+            <label>Date Sortie (DD/MM/YYYY) *</label>
+            <input
+              type="text"
+              placeholder="01/06/2026"
+              value={bulkCancelDate}
+              onChange={(e) => setBulkCancelDate(e.target.value)}
+              required
+            />
+          </div>
+          <textarea
+            className="bulk-textarea"
+            rows={5}
+            placeholder={'s_wmn3_2182\ns_wmn3_2180\ns_wmn3_2159'}
+            value={bulkCancelText}
+            onChange={(e) => setBulkCancelText(e.target.value)}
+          />
+          <div className="bulk-actions">
+            <span className="bulk-count">{bulkCancelText.split(/[\n, ]+/).filter(l => l.trim()).length} server(s) detected</span>
+            <button className="submit-btn danger-submit" onClick={handleBulkCancel}>🗑️ Cancel All</button>
           </div>
         </div>
       )}

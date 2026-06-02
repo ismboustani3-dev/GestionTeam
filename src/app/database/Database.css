@@ -609,6 +609,43 @@
   color: #e2e8f0;
 }
 
+/* Bulk Cancel Button */
+.bulk-cancel-btn {
+  padding: 0.65rem 1.25rem;
+  background: rgba(248, 113, 113, 0.1);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.bulk-cancel-btn:hover {
+  background: rgba(248, 113, 113, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(248, 113, 113, 0.2);
+}
+
+.cancel-bulk-form {
+  border-top: 2px solid #f87171;
+  background: rgba(248, 113, 113, 0.05);
+}
+
+.cancel-bulk-form h3 {
+  color: #f87171;
+}
+
+.danger-submit {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+}
+
+.danger-submit:hover {
+  box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
+}
+
 .highlight-red {
   color: #f87171;
   font-weight: 600;
