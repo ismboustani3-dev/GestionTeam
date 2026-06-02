@@ -406,14 +406,22 @@
 }
 
 .db-table th {
-  text-align: left;
   padding: 1rem 1.25rem;
-  font-size: 0.8rem;
+  color: #94a3b8;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  font-size: 0.8rem;
   text-transform: uppercase;
-  color: var(--text-muted);
+  letter-spacing: 0.05em;
   border-bottom: 1px solid var(--glass-border);
+}
+
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s;
+}
+.sortable-th:hover {
+  color: #e2e8f0;
 }
 
 .db-table td {

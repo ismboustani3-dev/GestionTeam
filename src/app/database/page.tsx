@@ -122,7 +122,7 @@ export default function DatabasePage() {
   const [bulkCancelText, setBulkCancelText] = useState('');
   const [showBulkIpDomain, setShowBulkIpDomain] = useState(false);
   const [bulkIpDomainText, setBulkIpDomainText] = useState('');
-  const [sortIp, setSortIp] = useState<'default' | 'min' | 'max'>('default');
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -167,11 +167,40 @@ export default function DatabasePage() {
   };
 
   const sortedServers = [...filteredActiveServers].sort((a, b) => {
-    if (sortIp === 'default') return 0;
-    const ipA = ipToNumber(a.mainIp);
-    const ipB = ipToNumber(b.mainIp);
-    return sortIp === 'min' ? ipA - ipB : ipB - ipA;
+    if (!sortConfig) return 0;
+    
+    const { key, direction } = sortConfig;
+    const modifier = direction === 'asc' ? 1 : -1;
+
+    if (key === 'serverName') {
+      return (a.serverName || '').localeCompare(b.serverName || '') * modifier;
+    }
+    if (key === 'mainIp') {
+      return (ipToNumber(a.mainIp) - ipToNumber(b.mainIp)) * modifier;
+    }
+    if (key === 'dateEntre' || key === 'age') {
+      const timeA = parseDate(a.dateEntre)?.getTime() || 0;
+      const timeB = parseDate(b.dateEntre)?.getTime() || 0;
+      return key === 'age' ? (timeB - timeA) * modifier : (timeA - timeB) * modifier;
+    }
+    if (key === 'dateSortie') {
+      const timeA = parseDate(a.dateSortie)?.getTime() || Number.MAX_SAFE_INTEGER;
+      const timeB = parseDate(b.dateSortie)?.getTime() || Number.MAX_SAFE_INTEGER;
+      return (timeA - timeB) * modifier;
+    }
+    return 0;
   });
+
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    } else if (sortConfig && sortConfig.key === key && sortConfig.direction === 'desc') {
+      setSortConfig(null);
+      return;
+    }
+    setSortConfig({ key, direction });
+  };
 
   const handleAddServer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -492,22 +521,7 @@ export default function DatabasePage() {
       </header>
 
       <div className="db-toolbar">
-        <div className="db-toolbar-left" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ color: '#94a3b8', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            ⇅ Sort by IP:
-          </span>
-          <div className="db-filter">
-            <select
-              className="filter-select"
-              value={sortIp}
-              onChange={(e) => setSortIp(e.target.value as 'default' | 'min' | 'max')}
-            >
-              <option value="default">Default</option>
-              <option value="min">Min IP (Low to High)</option>
-              <option value="max">Max IP (High to Low)</option>
-            </select>
-          </div>
-        </div>
+        <div className="db-toolbar-left"></div>
         <div className="db-toolbar-right">
           <div className="db-filter">
             <select
@@ -731,21 +745,27 @@ export default function DatabasePage() {
           <table className="db-table clean-table">
             <thead>
               <tr>
-                <th>Server</th>
-                <th>Main IP</th>
-                <th>DateEntre</th>
-                <th>Age</th>
-                <th>Notice Date</th>
+                <th className="sortable-th" onClick={() => handleSort('serverName')}>
+                  Server {sortConfig?.key === 'serverName' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
+                <th className="sortable-th" onClick={() => handleSort('mainIp')}>
+                  Main IP {sortConfig?.key === 'mainIp' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
+                <th className="sortable-th" onClick={() => handleSort('dateEntre')}>
+                  DateEntre {sortConfig?.key === 'dateEntre' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
+                <th className="sortable-th" onClick={() => handleSort('age')}>
+                  Age {sortConfig?.key === 'age' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
+                <th className="sortable-th" onClick={() => handleSort('dateSortie')}>
+                  Notice Date {sortConfig?.key === 'dateSortie' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
                 <th style={{textAlign: 'right'}}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredActiveServers.sort((a, b) => {
-                if (sortIp === 'min') return ipToNumber(a.mainIp) - ipToNumber(b.mainIp);
-                if (sortIp === 'max') return ipToNumber(b.mainIp) - ipToNumber(a.mainIp);
-                return 0;
-              }).length > 0 ? (
-                filteredActiveServers.map((s) => (
+              {sortedServers.length > 0 ? (
+                sortedServers.map((s) => (
                   <tr key={s.id}>
                     <td className="td-name">{s.serverName || '—'}</td>
                     <td className="td-ip">{s.mainIp}</td>
