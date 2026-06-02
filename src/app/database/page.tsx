@@ -121,6 +121,8 @@ export default function DatabasePage() {
   const deletedServers = currentTeam?.servers.filter(s => s.status === 'deleted') || [];
   
   const monthDelCount = activeServers.filter(s => s.dateSortie && isCurrentMonth(s.dateSortie)).length;
+  const monthNewCount = activeServers.filter(s => s.dateEntre && isCurrentMonth(s.dateEntre)).length;
+  const currentMonthName = new Date().toLocaleString('en-US', { month: 'short' });
 
   const handleAddServer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -478,6 +480,7 @@ export default function DatabasePage() {
           </div>
           <div className="board-header-right">
             <span className="stat-active">ACTIVE: <strong>{activeServers.length} Servers</strong></span>
+            <span className="stat-new">NEW SERVER ADD: <strong>{monthNewCount} {currentMonthName}</strong></span>
             <span className="stat-del">MONTH DEL: <strong>{monthDelCount}</strong></span>
           </div>
         </div>

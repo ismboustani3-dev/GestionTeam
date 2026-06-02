@@ -693,6 +693,12 @@
   margin-left: 0.25rem;
 }
 
+.stat-new strong {
+  color: #60a5fa;
+  font-weight: 700;
+  margin-left: 0.25rem;
+}
+
 .stat-del strong {
   color: #f87171;
   font-weight: 700;
