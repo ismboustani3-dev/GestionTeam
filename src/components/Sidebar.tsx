@@ -22,42 +22,6 @@ export default function Sidebar() {
             <span className="nav-icon">🗄️</span>
             Database
           </Link>
-          <Link href="/management" className="nav-item">
-            <span className="nav-icon">⚙️</span>
-            Management
-          </Link>
-          <Link href="/team" className="nav-item">
-            <span className="nav-icon">👥</span>
-            Team
-          </Link>
-          <Link href="/inventory" className="nav-item">
-            <span className="nav-icon">📦</span>
-            Server Inventory
-          </Link>
-          <Link href="/tools" className="nav-item">
-            <span className="nav-icon">🔧</span>
-            Tools
-          </Link>
-          <Link href="/ip-status" className="nav-item">
-            <span className="nav-icon">⚠️</span>
-            IP Status
-          </Link>
-          <Link href="/drops" className="nav-item">
-            <span className="nav-icon">📉</span>
-            Drop Details
-          </Link>
-          <Link href="/spamhaus" className="nav-item">
-            <span className="nav-icon">🔍</span>
-            Spamhaus
-          </Link>
-          <Link href="/ai-agent" className="nav-item">
-            <span className="nav-icon">🤖</span>
-            AI Agent
-          </Link>
-          <Link href="/rps" className="nav-item">
-            <span className="nav-icon">🌐</span>
-            RPs
-          </Link>
         </nav>
       </div>
     </aside>
