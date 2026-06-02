@@ -22,6 +22,10 @@ export default function Sidebar() {
             <span className="nav-icon">🗄️</span>
             Database
           </Link>
+          <Link href="/team-server-detail" className="nav-item">
+            <span className="nav-icon">🖥️</span>
+            Team Server Detail
+          </Link>
         </nav>
       </div>
     </aside>
