@@ -19,6 +19,7 @@ interface Server {
   rdnsDate?: string;
   rdnsDetails?: any[];
   vmtaDetails?: Record<string, string>; // mapping from IP to VMTA string
+  vmtaDeclared?: Record<string, string>; // mapping from IP to Declared VMTA string
 }
 
 interface Team {
@@ -30,6 +31,7 @@ interface InfraIp {
   ip: string;
   ptr: string;
   vmta: string;
+  vmtaDeclared: string;
   status: string;
 }
 
@@ -44,6 +46,9 @@ export default function InfrastructurePage() {
   const [activeTeam, setActiveTeam] = useState<string>('REDA');
   const [isAuditing, setIsAuditing] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  
+  const [isAddVmtaModalOpen, setIsAddVmtaModalOpen] = useState(false);
+  const [vmtaInput, setVmtaInput] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem('gestiq_teams_data');
@@ -152,6 +157,58 @@ export default function InfrastructurePage() {
     }, 1500);
   };
 
+  const handleSaveVmtaDeclared = () => {
+    if (!vmtaInput.trim()) return;
+
+    // Parse input: ip;vmta
+    const lines = vmtaInput.split('\n');
+    const updates = new Map<string, string>();
+    lines.forEach(line => {
+      const parts = line.split(';');
+      if (parts.length >= 2) {
+        const ip = parts[0].trim();
+        const vmta = parts[1].trim();
+        if (ip && vmta) {
+          updates.set(ip, vmta);
+        }
+      }
+    });
+
+    if (updates.size > 0) {
+      setTeams(prev => prev.map(t => {
+        if (t.name !== activeTeam) return t;
+        return {
+          ...t,
+          servers: t.servers.map(s => {
+            let changed = false;
+            const newVmtaDeclared = { ...(s.vmtaDeclared || {}) };
+            
+            if (s.mainIp && updates.has(s.mainIp)) {
+              newVmtaDeclared[s.mainIp] = updates.get(s.mainIp)!;
+              changed = true;
+            }
+            if (s.ipDomains) {
+              s.ipDomains.forEach(d => {
+                if (updates.has(d.ip)) {
+                  newVmtaDeclared[d.ip] = updates.get(d.ip)!;
+                  changed = true;
+                }
+              });
+            }
+            
+            if (changed) {
+              return { ...s, vmtaDeclared: newVmtaDeclared };
+            }
+            return s;
+          })
+        };
+      }));
+    }
+    
+    setIsAddVmtaModalOpen(false);
+    setVmtaInput('');
+  };
+
   // Build the flattened structure for the table
   const rows: InfraServerRow[] = [];
   const currentTeamData = teams.find(t => t.name === activeTeam);
@@ -171,11 +228,13 @@ export default function InfrastructurePage() {
           }
           
           const vmta = s.vmtaDetails && s.vmtaDetails[ip] ? s.vmtaDetails[ip] : '—';
+          const vmtaDeclared = s.vmtaDeclared && s.vmtaDeclared[ip] ? s.vmtaDeclared[ip] : '—';
 
           ipsMap.set(ip, {
             ip,
             ptr: ptrStr,
             vmta,
+            vmtaDeclared,
             status
           });
         }
@@ -218,6 +277,13 @@ export default function InfrastructurePage() {
           >
             {isSyncing ? 'Syncing...' : '✉️ Sync VMTA from Gmail'}
           </button>
+          <button 
+            className="btn-blue" 
+            style={{ background: '#8b5cf6' }}
+            onClick={() => setIsAddVmtaModalOpen(true)}
+          >
+            ➕ Add VMTA Declared
+          </button>
         </div>
       </div>
 
@@ -245,6 +311,7 @@ export default function InfrastructurePage() {
               <th>IP Address</th>
               <th>Reverse DNS (PTR)</th>
               <th>VMTA</th>
+              <th>VMTA Declared</th>
               <th style={{ textAlign: 'right' }}>Status</th>
             </tr>
           </thead>
@@ -265,6 +332,7 @@ export default function InfrastructurePage() {
                       <td className="ip-cell">{ipInfo.ip}</td>
                       <td className="rdns-val">{ipInfo.ptr}</td>
                       <td className="vmta-val">{ipInfo.vmta}</td>
+                      <td className="vmta-val" style={{ color: '#a78bfa' }}>{ipInfo.vmtaDeclared}</td>
                       <td style={{ textAlign: 'right' }} className={`status-${ipInfo.status.toLowerCase()}`}>
                         {ipInfo.status}
                       </td>
@@ -280,6 +348,45 @@ export default function InfrastructurePage() {
           </tbody>
         </table>
       </div>
+
+      {/* Add VMTA Declared Modal */}
+      {isAddVmtaModalOpen && (
+        <div className="modal-overlay">
+          <div className="audit-modal animate-fade-in" style={{ maxWidth: '500px' }}>
+            <div className="audit-modal-header">
+              <h2>Add VMTA Declared</h2>
+              <button className="close-btn" onClick={() => setIsAddVmtaModalOpen(false)}>✕</button>
+            </div>
+            <div className="audit-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.85rem' }}>
+                Paste your declared VMTAs below. <br/>
+                Format: <code style={{ color: '#38bdf8' }}>ip;vmta</code> (one per line)
+              </p>
+              <textarea 
+                value={vmtaInput}
+                onChange={(e) => setVmtaInput(e.target.value)}
+                placeholder="104.206.148.58;obx.fbcw.tw&#10;173.44.157.34;wabunq.feth.pw"
+                style={{
+                  width: '100%',
+                  height: '200px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  color: '#e2e8f0',
+                  fontFamily: 'monospace',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+            <div className="audit-modal-footer">
+              <button className="btn-blue" style={{ background: '#8b5cf6' }} onClick={handleSaveVmtaDeclared}>
+                Save VMTAs
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
