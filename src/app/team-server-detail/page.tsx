@@ -126,7 +126,12 @@ export default function TeamServerDetailPage() {
     }
     totalIps += count;
 
-    const p = s.provider || 'Unknown';
+    let p = s.provider ? s.provider.trim() : '';
+    if (p) {
+      p = p.toUpperCase() === 'OVH' ? 'OVH' : p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
+    } else {
+      p = 'Unknown';
+    }
     providerStats[p] = (providerStats[p] || 0) + 1;
 
     // The user wants 'Class 28', 'Class 29', etc.
