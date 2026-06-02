@@ -85,7 +85,6 @@ export default function DatabasePage() {
   const [showBulkCancel, setShowBulkCancel] = useState(false);
   const [bulkText, setBulkText] = useState('');
   const [bulkCancelText, setBulkCancelText] = useState('');
-  const [bulkCancelDate, setBulkCancelDate] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -190,11 +189,6 @@ export default function DatabasePage() {
   };
 
   const handleBulkCancel = () => {
-    if (!bulkCancelDate.trim()) {
-      alert("Please provide a Date Sortie for the cancelled servers.");
-      return;
-    }
-    
     // Extract server names (split by commas, newlines, or spaces)
     const serverNamesToCancel = bulkCancelText
       .split(/[\n, ]+/)
@@ -203,6 +197,13 @@ export default function DatabasePage() {
 
     if (serverNamesToCancel.length === 0) return;
 
+    // Auto calculate today's date in DD/MM/YYYY
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    const todayFormatted = `${dd}/${mm}/${yyyy}`;
+
     setTeams(prev =>
       prev.map(t =>
         t.name === activeTeam
@@ -210,7 +211,7 @@ export default function DatabasePage() {
               ...t,
               servers: t.servers.map(s => {
                 if (serverNamesToCancel.includes(s.serverName.toLowerCase())) {
-                  return { ...s, status: 'deleted', dateSortie: bulkCancelDate };
+                  return { ...s, status: 'deleted', dateSortie: todayFormatted };
                 }
                 return s;
               })
@@ -220,7 +221,6 @@ export default function DatabasePage() {
     );
 
     setBulkCancelText('');
-    setBulkCancelDate('');
     setShowBulkCancel(false);
   };
 
@@ -366,17 +366,7 @@ export default function DatabasePage() {
       {showBulkCancel && (
         <div className="bulk-form cancel-bulk-form animate-fade-in">
           <h3>🗑️ Bulk Cancel Servers for {activeTeam}</h3>
-          <p className="bulk-hint">Paste server names separated by space, comma, or new line. They will be moved to Deleted History.</p>
-          <div className="form-group" style={{ marginBottom: '1rem', width: '200px' }}>
-            <label>Date Sortie (DD/MM/YYYY) *</label>
-            <input
-              type="text"
-              placeholder="01/06/2026"
-              value={bulkCancelDate}
-              onChange={(e) => setBulkCancelDate(e.target.value)}
-              required
-            />
-          </div>
+          <p className="bulk-hint">Paste server names separated by space, comma, or new line. They will be moved to Deleted History automatically using today's date.</p>
           <textarea
             className="bulk-textarea"
             rows={5}
