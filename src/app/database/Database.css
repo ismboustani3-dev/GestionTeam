@@ -60,8 +60,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.db-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .db-tabs {

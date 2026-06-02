@@ -122,6 +122,7 @@ export default function DatabasePage() {
   const [bulkCancelText, setBulkCancelText] = useState('');
   const [showBulkIpDomain, setShowBulkIpDomain] = useState(false);
   const [bulkIpDomainText, setBulkIpDomainText] = useState('');
+  const [sortIp, setSortIp] = useState<'default' | 'min' | 'max'>('default');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -158,7 +159,19 @@ export default function DatabasePage() {
   
   const monthDelCount = deletedServers.filter(s => s.dateSortie && isCurrentMonth(s.dateSortie)).length;
   const monthNewCount = activeServers.filter(s => s.dateEntre && isCurrentMonth(s.dateEntre)).length;
-  const currentMonthName = new Date().toLocaleString('en-US', { month: 'short' });
+  const currentMonthName = new Date().toLocaleString('en-US', { month: 'short' }).toUpperCase();
+
+  const ipToNumber = (ip: string) => {
+    if (!ip) return 0;
+    return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+  };
+
+  const sortedServers = [...filteredActiveServers].sort((a, b) => {
+    if (sortIp === 'default') return 0;
+    const ipA = ipToNumber(a.mainIp);
+    const ipB = ipToNumber(b.mainIp);
+    return sortIp === 'min' ? ipA - ipB : ipB - ipA;
+  });
 
   const handleAddServer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -479,6 +492,22 @@ export default function DatabasePage() {
       </header>
 
       <div className="db-toolbar">
+        <div className="db-toolbar-left" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span style={{ color: '#94a3b8', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            ⇅ Sort by IP:
+          </span>
+          <div className="db-filter">
+            <select
+              className="filter-select"
+              value={sortIp}
+              onChange={(e) => setSortIp(e.target.value as 'default' | 'min' | 'max')}
+            >
+              <option value="default">Default</option>
+              <option value="min">Min IP (Low to High)</option>
+              <option value="max">Max IP (High to Low)</option>
+            </select>
+          </div>
+        </div>
         <div className="db-toolbar-right">
           <div className="db-filter">
             <select
@@ -711,7 +740,11 @@ export default function DatabasePage() {
               </tr>
             </thead>
             <tbody>
-              {filteredActiveServers.length > 0 ? (
+              {filteredActiveServers.sort((a, b) => {
+                if (sortIp === 'min') return ipToNumber(a.mainIp) - ipToNumber(b.mainIp);
+                if (sortIp === 'max') return ipToNumber(b.mainIp) - ipToNumber(a.mainIp);
+                return 0;
+              }).length > 0 ? (
                 filteredActiveServers.map((s) => (
                   <tr key={s.id}>
                     <td className="td-name">{s.serverName || '—'}</td>
