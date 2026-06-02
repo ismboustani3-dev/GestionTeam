@@ -118,9 +118,11 @@ export default function TeamServerDetailPage() {
   const classStats: Record<string, number> = {};
 
   activeServers.forEach(s => {
-    let count = 1;
+    let count = Number(s.nbrIps) || 0;
     if (s.ipDomains && s.ipDomains.length > 0) {
-      count += s.ipDomains.reduce((acc, curr) => acc + (curr.ips ? curr.ips.length : 0), 0);
+      const allIps = new Set(s.ipDomains.map(d => d.ip));
+      if (s.mainIp) allIps.add(s.mainIp);
+      count = allIps.size;
     }
     totalIps += count;
 
