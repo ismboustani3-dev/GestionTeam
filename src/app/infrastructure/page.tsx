@@ -169,6 +169,90 @@ export default function InfrastructurePage() {
     setIsAuditing(false);
   };
 
+  const handleCheckAllTeams = async () => {
+    setIsAuditing(true);
+    try {
+      for (const team of teams) {
+        const activeServers = team.servers.filter(s => s.status !== 'deleted');
+        if (activeServers.length === 0) continue;
+
+        const response = await fetch('/api/rdns', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ servers: activeServers })
+        });
+        const data = await response.json();
+
+        if (data.results) {
+          setTeams(prev => prev.map(t => {
+            if (t.name !== team.name) return t;
+            return {
+              ...t,
+              servers: t.servers.map(s => {
+                const result = data.results.find((r: any) => r.serverId === s.id);
+                if (result) {
+                  return {
+                    ...s,
+                    rdnsStatus: result.overallMatch ? 'OK' : 'FAIL',
+                    rdnsDate: new Date().toLocaleString('en-US'),
+                    rdnsDetails: result.queries
+                  };
+                }
+                return s;
+              })
+            };
+          }));
+
+          // Build Telegram notification for this team
+          const failedByServer: { serverName: string; failedIps: { ip: string; ptr: string }[] }[] = [];
+          data.results.forEach((result: any) => {
+            const server = activeServers.find(s => s.id === result.serverId);
+            if (!server) return;
+            const failedQueries = (result.queries || []).filter(
+              (q: any) => q.type === 'PTR' && q.match !== 'OK'
+            );
+            if (failedQueries.length > 0) {
+              failedByServer.push({
+                serverName: server.serverName,
+                failedIps: failedQueries.map((q: any) => ({ ip: q.query, ptr: q.result || 'No Record' }))
+              });
+            }
+          });
+
+          const now = new Date().toLocaleString('en-US');
+          let msg = '';
+          if (failedByServer.length > 0) {
+            msg = `🔴 <b>RDNS ALERT — Team ${team.name}</b>\n📅 ${now}\n\n`;
+            failedByServer.forEach(entry => {
+              msg += `🖥️ <b>${entry.serverName}</b>\n`;
+              entry.failedIps.forEach(ip => {
+                msg += `   ❌ ${ip.ip} → ${ip.ptr}\n`;
+              });
+              msg += `\n`;
+            });
+            msg += `⚠️ Total: ${failedByServer.reduce((sum, e) => sum + e.failedIps.length, 0)} failed IPs across ${failedByServer.length} servers`;
+          } else {
+            msg = `✅ <b>RDNS CHECK PASSED — Team ${team.name}</b>\n📅 ${now}\n\nAll IPs have valid RDNS records! 🎉`;
+          }
+
+          try {
+            await fetch('/api/telegram', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: msg })
+            });
+          } catch (telegramErr) {
+            console.error('Telegram notification failed:', telegramErr);
+          }
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to check all teams');
+    }
+    setIsAuditing(false);
+  };
+
   const generateRandomVmta = (domain: string) => {
     // Generate a random 3-5 character string prefix
     const chars = 'abcdefghijklmnopqrstuvwxyz';
@@ -332,6 +416,14 @@ export default function InfrastructurePage() {
             disabled={isAuditing}
           >
             {isAuditing ? 'Checking...' : '🛡️ Check RDNS'}
+          </button>
+          <button 
+            className="btn-blue" 
+            style={{ background: '#f59e0b' }}
+            onClick={handleCheckAllTeams}
+            disabled={isAuditing}
+          >
+            {isAuditing ? 'Checking...' : '⚡ Check All Teams'}
           </button>
           <button 
             className="btn-red" 
