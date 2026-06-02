@@ -416,9 +416,14 @@
   font-size: 0.85rem;
 }
 
+.td-name {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
 .td-ip {
   color: var(--text-primary);
-  font-weight: 700;
   font-family: 'Courier New', monospace;
   letter-spacing: 0.5px;
 }

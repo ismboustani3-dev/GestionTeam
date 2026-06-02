@@ -364,7 +364,8 @@ export default function DatabasePage() {
             <thead>
               <tr>
                 <th>#</th>
-                <th>Server / Main IP</th>
+                <th>Server</th>
+                <th>Main IP</th>
                 <th>Date Entrée</th>
                 <th>Date Sortie</th>
                 <th>Age Server</th>
@@ -377,7 +378,8 @@ export default function DatabasePage() {
                 return (
                   <tr key={s.id}>
                     <td className="td-id">{idx + 1}</td>
-                    <td className="td-ip">{s.serverName ? `${s.serverName} / ${s.mainIp}` : s.mainIp}</td>
+                    <td className="td-name">{s.serverName || '—'}</td>
+                    <td className="td-ip">{s.mainIp}</td>
                     <td className="td-date">{s.dateEntre}</td>
                     <td className="td-date">{s.dateSortie || '—'}</td>
                     <td>
