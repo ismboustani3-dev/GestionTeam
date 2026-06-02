@@ -41,6 +41,7 @@ interface InfraServerRow {
 
 export default function InfrastructurePage() {
   const [teams, setTeams] = useState<Team[]>([]);
+  const [activeTeam, setActiveTeam] = useState<string>('REDA');
   const [isAuditing, setIsAuditing] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -65,13 +66,14 @@ export default function InfrastructurePage() {
   const handleCheckRdns = async () => {
     setIsAuditing(true);
     try {
-      // Gather all active servers across all teams
-      const allActiveServers = teams.flatMap(t => t.servers.filter(s => s.status !== 'deleted'));
+      // Gather all active servers for the active team
+      const currentTeam = teams.find(t => t.name === activeTeam);
+      const activeServers = currentTeam?.servers.filter(s => s.status !== 'deleted') || [];
       
       const response = await fetch('/api/rdns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ servers: allActiveServers })
+        body: JSON.stringify({ servers: activeServers })
       });
       const data = await response.json();
       
@@ -118,38 +120,43 @@ export default function InfrastructurePage() {
     setIsSyncing(true);
     // Simulate API delay
     setTimeout(() => {
-      setTeams(prev => prev.map(t => ({
-        ...t,
-        servers: t.servers.map(s => {
-          const vmtas: Record<string, string> = {};
-          
-          if (s.mainIp) {
-             const ptrQuery = s.rdnsDetails?.find(d => d.query === s.mainIp && d.type === 'PTR');
-             const ptr = ptrQuery?.result && ptrQuery.result !== 'FAIL' ? ptrQuery.result.split(',')[0].trim() : 'unknown.com';
-             vmtas[s.mainIp] = generateRandomVmta(ptr);
-          }
-          if (s.ipDomains) {
-            s.ipDomains.forEach(d => {
-               if (d.ip !== s.mainIp) {
-                 vmtas[d.ip] = generateRandomVmta(d.domain);
-               }
-            });
-          }
-          
-          return {
-            ...s,
-            vmtaDetails: vmtas
-          };
-        })
-      })));
+      setTeams(prev => prev.map(t => {
+        if (t.name !== activeTeam) return t;
+        
+        return {
+          ...t,
+          servers: t.servers.map(s => {
+            const vmtas: Record<string, string> = {};
+            
+            if (s.mainIp) {
+               const ptrQuery = s.rdnsDetails?.find(d => d.query === s.mainIp && d.type === 'PTR');
+               const ptr = ptrQuery?.result && ptrQuery.result !== 'FAIL' ? ptrQuery.result.split(',')[0].trim() : 'unknown.com';
+               vmtas[s.mainIp] = generateRandomVmta(ptr);
+            }
+            if (s.ipDomains) {
+              s.ipDomains.forEach(d => {
+                 if (d.ip !== s.mainIp) {
+                   vmtas[d.ip] = generateRandomVmta(d.domain);
+                 }
+              });
+            }
+            
+            return {
+              ...s,
+              vmtaDetails: vmtas
+            };
+          })
+        };
+      }));
       setIsSyncing(false);
     }, 1500);
   };
 
   // Build the flattened structure for the table
   const rows: InfraServerRow[] = [];
-  teams.forEach(t => {
-    t.servers.filter(s => s.status !== 'deleted').forEach(s => {
+  const currentTeamData = teams.find(t => t.name === activeTeam);
+  if (currentTeamData) {
+    currentTeamData.servers.filter(s => s.status !== 'deleted').forEach(s => {
       const ipsMap = new Map<string, InfraIp>();
       
       const addIp = (ip: string) => {
@@ -187,7 +194,7 @@ export default function InfrastructurePage() {
         });
       }
     });
-  });
+  }
 
   return (
     <div className="infra-page animate-fade-in">
@@ -212,6 +219,22 @@ export default function InfrastructurePage() {
             {isSyncing ? 'Syncing...' : '✉️ Sync VMTA from Gmail'}
           </button>
         </div>
+      </div>
+
+      <div className="infra-tabs">
+        {teams.map(team => {
+          const count = team.servers.filter(s => s.status !== 'deleted').length;
+          return (
+            <button
+              key={team.name}
+              className={`infra-tab ${activeTeam === team.name ? 'active' : ''}`}
+              onClick={() => setActiveTeam(team.name)}
+            >
+              <span className="tab-name">👥 {team.name}</span>
+              <span className="infra-tab-count">{count}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="infra-table-container">
