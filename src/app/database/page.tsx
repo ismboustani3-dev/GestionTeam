@@ -14,6 +14,7 @@ interface Server {
   nbrIps: number;
   classType: string;
   status?: 'active' | 'deleted';
+  dateDeclaration?: string;
 }
 
 function parseDate(dateStr: string): Date | null {
@@ -211,7 +212,7 @@ export default function DatabasePage() {
               ...t,
               servers: t.servers.map(s => {
                 if (serverNamesToCancel.includes(s.serverName.toLowerCase())) {
-                  return { ...s, status: 'deleted', dateSortie: todayFormatted };
+                  return { ...s, status: 'deleted', dateSortie: todayFormatted, dateDeclaration: todayFormatted };
                 }
                 return s;
               })
@@ -235,12 +236,19 @@ export default function DatabasePage() {
       ds = promptDate;
     }
 
+    // Auto calculate today's date
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    const todayFormatted = `${dd}/${mm}/${yyyy}`;
+
     setTeams(prev =>
       prev.map(t =>
         t.name === activeTeam
           ? {
               ...t,
-              servers: t.servers.map(s => s.id === serverId ? { ...s, status: 'deleted', dateSortie: ds as string } : s)
+              servers: t.servers.map(s => s.id === serverId ? { ...s, status: 'deleted', dateSortie: ds as string, dateDeclaration: todayFormatted } : s)
             }
           : t
       )
@@ -537,7 +545,9 @@ export default function DatabasePage() {
                     <tr>
                       <th>Server</th>
                       <th>Main IP</th>
+                      <th>DateEntre</th>
                       <th>DateSortie</th>
+                      <th>Jour Declaration</th>
                       <th style={{textAlign: 'right'}}>Actions</th>
                     </tr>
                   </thead>
@@ -546,7 +556,9 @@ export default function DatabasePage() {
                       <tr key={s.id}>
                         <td className="td-name">{s.serverName || '—'}</td>
                         <td className="td-ip">{s.mainIp}</td>
+                        <td className="td-date">{s.dateEntre}</td>
                         <td className="notice-date">{s.dateSortie}</td>
+                        <td className="td-date">{s.dateDeclaration || s.dateSortie || '—'}</td>
                         <td style={{textAlign: 'right'}}>
                           <div className="action-buttons-right">
                             <button className="minimal-btn" onClick={() => handlePermanentDelete(s.id)}>Perm Del</button>
