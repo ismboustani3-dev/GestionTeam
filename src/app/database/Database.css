@@ -72,14 +72,14 @@
 .db-tab {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.7rem 1.25rem;
+  gap: 0.75rem;
+  padding: 0.85rem 1.75rem;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--text-secondary);
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 1.05rem;
+  font-weight: 600;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
 }
@@ -92,21 +92,41 @@
 
 .db-tab.active {
   background: rgba(56, 189, 248, 0.1);
-  border-color: rgba(56, 189, 248, 0.3);
+  border-color: rgba(56, 189, 248, 0.4);
   color: #38bdf8;
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.15);
 }
 
-.tab-badge {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.15rem 0.5rem;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
+.tab-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
-.db-tab.active .tab-badge {
-  background: rgba(56, 189, 248, 0.2);
-  color: #38bdf8;
+.team-counters {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: 0.25rem;
+}
+
+.team-counter-green {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.team-counter-red {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1px solid rgba(248, 113, 113, 0.3);
 }
 
 /* Toolbar right */

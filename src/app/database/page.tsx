@@ -373,16 +373,23 @@ export default function DatabasePage() {
         </div>
         <div className="db-toolbar-tabs">
           <div className="db-tabs">
-            {teams.map(team => (
-              <button
-                key={team.name}
-                className={`db-tab ${activeTeam === team.name ? 'active' : ''}`}
-                onClick={() => { setActiveTeam(team.name); setSearchTerm(''); }}
-              >
-                <span>👥</span>
-                <span>{team.name}</span>
-              </button>
-            ))}
+            {teams.map(team => {
+              const activeCount = team.servers.filter(s => s.status !== 'deleted').length;
+              const cancelCount = team.servers.filter(s => s.status !== 'deleted' && s.dateSortie).length;
+              return (
+                <button
+                  key={team.name}
+                  className={`db-tab ${activeTeam === team.name ? 'active' : ''}`}
+                  onClick={() => { setActiveTeam(team.name); setSearchTerm(''); }}
+                >
+                  <span className="tab-name">👥 {team.name}</span>
+                  <div className="team-counters">
+                    <span className="team-counter-green" title="Active Servers">{activeCount}</span>
+                    <span className="team-counter-red" title="Servers to Cancel">{cancelCount}</span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </header>
