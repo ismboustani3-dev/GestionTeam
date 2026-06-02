@@ -745,7 +745,7 @@ export default function DatabasePage() {
                   alert('No urgent servers found!');
                   return;
                 }
-                const names = redServers.map(s => s.serverName).filter(Boolean).join('\n');
+                const names = redServers.map(s => `${s.serverName} ; ${s.dateSortie}`).join('\n');
                 navigator.clipboard.writeText(names);
                 alert(`Copied ${redServers.length} urgent server(s) to clipboard!`);
               }}
