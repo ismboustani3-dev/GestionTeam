@@ -217,3 +217,61 @@
   color: var(--text-muted) !important;
   font-style: italic;
 }
+
+/* IP Domain Mappings */
+.ip-domain-row {
+  background: rgba(15, 23, 42, 0.3) !important;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+}
+
+.ip-domain-cell {
+  padding: 0 1.25rem 1rem 1.25rem !important;
+  border-bottom: none !important;
+}
+
+.ip-domain-list {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  border-left: 3px solid #38bdf8;
+}
+
+.ip-domain-list strong {
+  color: #38bdf8;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.ip-domain-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.5rem;
+}
+
+.ip-domain-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.mapped-ip {
+  color: #34d399;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.mapped-domain {
+  color: #cbd5e1;
+  font-size: 0.85rem;
+}

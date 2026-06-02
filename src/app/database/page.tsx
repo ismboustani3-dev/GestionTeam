@@ -12,9 +12,9 @@ interface Server {
   dateEntre: string;
   dateSortie: string;
   nbrIps: number;
-  classType: string;
   status?: 'active' | 'deleted';
   dateDeclaration?: string;
+  ipDomains?: { ip: string, domain: string }[];
 }
 
 function parseDate(dateStr: string): Date | null {
@@ -83,10 +83,11 @@ export default function DatabasePage() {
   const [filterField, setFilterField] = useState<'all' | 'ip' | 'provider' | 'asn'>('all');
   const [showForm, setShowForm] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
-  const [showBulkCancel, setShowBulkCancel] = useState(false);
   const [editingServerId, setEditingServerId] = useState<number | null>(null);
   const [bulkText, setBulkText] = useState('');
   const [bulkCancelText, setBulkCancelText] = useState('');
+  const [showBulkIpDomain, setShowBulkIpDomain] = useState(false);
+  const [bulkIpDomainText, setBulkIpDomainText] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -298,6 +299,44 @@ export default function DatabasePage() {
     setShowBulkCancel(false);
   };
 
+  const handleBulkIpDomain = () => {
+    const lines = bulkIpDomainText.trim().split('\n').filter(l => l.trim());
+    const updates = new Map<string, {ip: string, domain: string}[]>();
+    
+    for (const line of lines) {
+      const parts = line.split(':');
+      if (parts.length >= 3) {
+        const serverName = parts[0].trim().toLowerCase();
+        const ip = parts[1].trim();
+        const domain = parts.slice(2).join(':').trim();
+        if (!updates.has(serverName)) {
+          updates.set(serverName, []);
+        }
+        updates.get(serverName)!.push({ip, domain});
+      }
+    }
+
+    setTeams(prev => prev.map(t => {
+      if (t.name === activeTeam) {
+        return {
+          ...t,
+          servers: t.servers.map(s => {
+            const sname = s.serverName.toLowerCase();
+            if (updates.has(sname)) {
+              const currentDomains = s.ipDomains || [];
+              return { ...s, ipDomains: [...currentDomains, ...updates.get(sname)!] };
+            }
+            return s;
+          })
+        };
+      }
+      return t;
+    }));
+
+    setBulkIpDomainText('');
+    setShowBulkIpDomain(false);
+  };
+
   const handleDeleteToHistory = (serverId: number) => {
     // If it doesn't have a dateSortie, ask for it so we know which month to put it in
     const serverToDel = currentTeam?.servers.find(s => s.id === serverId);
@@ -426,14 +465,18 @@ export default function DatabasePage() {
             setShowForm(!showForm); 
             setShowBulk(false); 
             setShowBulkCancel(false); 
+            setShowBulkIpDomain(false);
           }}>
             {showForm && !editingServerId ? '✕ Cancel' : '+ Add Server'}
           </button>
-          <button className="bulk-import-btn" onClick={() => { setShowBulk(!showBulk); setShowForm(false); setShowBulkCancel(false); }}>
+          <button className="bulk-import-btn" onClick={() => { setShowBulk(!showBulk); setShowForm(false); setShowBulkCancel(false); setShowBulkIpDomain(false); }}>
             {showBulk ? '✕ Cancel' : '📋 Bulk Import'}
           </button>
-          <button className="bulk-cancel-btn" onClick={() => { setShowBulkCancel(!showBulkCancel); setShowBulk(false); setShowForm(false); }}>
+          <button className="bulk-cancel-btn" onClick={() => { setShowBulkCancel(!showBulkCancel); setShowForm(false); setShowBulk(false); setShowBulkIpDomain(false); }}>
             {showBulkCancel ? '✕ Cancel' : '🗑️ Bulk Cancel'}
+          </button>
+          <button className="bulk-import-btn" style={{background: 'linear-gradient(135deg, #10b981, #3b82f6)'}} onClick={() => { setShowBulkIpDomain(!showBulkIpDomain); setShowForm(false); setShowBulk(false); setShowBulkCancel(false); }}>
+            {showBulkIpDomain ? '✕ Cancel' : '🌐 Map IPs & Domains'}
           </button>
         </div>
       </div>
@@ -460,9 +503,10 @@ export default function DatabasePage() {
 
       {/* Bulk Cancel */}
       {showBulkCancel && (
-        <div className="bulk-form cancel-bulk-form animate-fade-in">
-          <h3>🗑️ Bulk Cancel Servers for {activeTeam}</h3>
-          <p className="bulk-hint">Paste server names separated by space, comma, or new line. They will be moved to Deleted History automatically using today's date.</p>
+        <div className="bulk-form animate-fade-in" style={{ borderColor: 'rgba(248, 113, 113, 0.4)' }}>
+          <h3 style={{ color: '#f87171' }}>🗑️ Bulk Cancel Servers</h3>
+          <p className="bulk-hint">Paste your list of server names to cancel (separated by commas, spaces, or newlines).</p>
+          <p className="bulk-example">Example: <code>srv-01, srv-02, srv-03</code></p>
           <textarea
             className="bulk-textarea"
             rows={5}
@@ -473,6 +517,26 @@ export default function DatabasePage() {
           <div className="bulk-actions">
             <span className="bulk-count">{bulkCancelText.split(/[\n, ]+/).filter(l => l.trim()).length} server(s) detected</span>
             <button className="submit-btn danger-submit" onClick={handleBulkCancel}>🗑️ Cancel All</button>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Map IP Domains */}
+      {showBulkIpDomain && (
+        <div className="bulk-form animate-fade-in" style={{ borderColor: 'rgba(56, 189, 248, 0.4)' }}>
+          <h3 style={{ color: '#38bdf8' }}>🌐 Map IPs & Domains to Servers</h3>
+          <p className="bulk-hint">Paste your list in the exact format: <code>ServerName:IP:Domain</code> (one per line).</p>
+          <p className="bulk-example">Example:<br/><code>server1:192.168.1.1:domain.com</code><br/><code>server1:10.0.0.5:domain2.com</code></p>
+          <textarea
+            className="bulk-textarea"
+            rows={5}
+            placeholder={'srv-01:1.1.1.1:test.com\nsrv-01:2.2.2.2:example.com'}
+            value={bulkIpDomainText}
+            onChange={(e) => setBulkIpDomainText(e.target.value)}
+          />
+          <div className="bulk-actions">
+            <span className="bulk-count">{bulkIpDomainText.split('\n').filter(l => l.trim()).length} mapping(s) detected</span>
+            <button className="submit-btn" style={{background: 'linear-gradient(135deg, #10b981, #3b82f6)'}} onClick={handleBulkIpDomain}>✓ Save Mappings</button>
           </div>
         </div>
       )}

@@ -14,6 +14,7 @@ interface Server {
   nbrIps: number;
   classType: string;
   status?: 'active' | 'deleted';
+  ipDomains?: { ip: string, domain: string }[];
 }
 
 interface Team {
@@ -114,21 +115,40 @@ export default function TeamServerDetailPage() {
           <tbody>
             {filteredServers.length > 0 ? (
               filteredServers.map(s => (
-                <tr key={s.id}>
-                  <td className="fw-600 color-primary">{s.serverName || '—'}</td>
-                  <td className="font-mono">{s.mainIp}</td>
-                  <td>{s.provider || '—'}</td>
-                  <td>{s.asn || '—'}</td>
-                  <td>{s.dateEntre}</td>
-                  <td>{s.dateSortie ? <span className="notice-badge">⚠️ {s.dateSortie}</span> : '—'}</td>
-                  <td className="text-center">{s.nbrIps || '—'}</td>
-                  <td className="text-center">
-                    <span className="class-badge">{s.classType || '—'}</span>
-                  </td>
-                  <td>
-                    <span className="status-badge active-status">Active</span>
-                  </td>
-                </tr>
+                <React.Fragment key={s.id}>
+                  <tr>
+                    <td className="fw-600 color-primary">{s.serverName || '—'}</td>
+                    <td className="font-mono">{s.mainIp}</td>
+                    <td>{s.provider || '—'}</td>
+                    <td>{s.asn || '—'}</td>
+                    <td>{s.dateEntre}</td>
+                    <td>{s.dateSortie ? <span className="notice-badge">⚠️ {s.dateSortie}</span> : '—'}</td>
+                    <td className="text-center">{s.nbrIps || '—'}</td>
+                    <td className="text-center">
+                      <span className="class-badge">{s.classType || '—'}</span>
+                    </td>
+                    <td>
+                      <span className="status-badge active-status">Active</span>
+                    </td>
+                  </tr>
+                  {s.ipDomains && s.ipDomains.length > 0 && (
+                    <tr className="ip-domain-row">
+                      <td colSpan={9} className="ip-domain-cell">
+                        <div className="ip-domain-list">
+                          <strong>🌐 Mapped IPs & Domains ({s.ipDomains.length}):</strong>
+                          <ul>
+                            {s.ipDomains.map((ipd, idx) => (
+                              <li key={idx}>
+                                <span className="mapped-ip">{ipd.ip}</span>
+                                <span className="mapped-domain">{ipd.domain}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))
             ) : (
               <tr>
