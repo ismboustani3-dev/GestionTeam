@@ -240,7 +240,7 @@ export default function DatabasePage() {
           dateSortie: dateSortie,
           nbrIps: nbrIps,
           classType: parts[7] || getClassFromIps(nbrIps),
-          status: dateSortie ? 'deleted' : 'active',
+          status: 'active',
         });
       }
     }
