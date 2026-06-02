@@ -22,6 +22,15 @@ interface Team {
   servers: Server[];
 }
 
+// Auto-calculate class based on number of IPs
+function getClassFromIps(nbrIps: number): string {
+  if (nbrIps >= 19 && nbrIps <= 35) return '/27';
+  if (nbrIps >= 7 && nbrIps <= 18) return '/28';
+  if (nbrIps >= 3 && nbrIps <= 6) return '/29';
+  if (nbrIps > 35) return '/26 or less';
+  return '—';
+}
+
 export default function TeamServerDetailPage() {
   const [teams, setTeams] = useState<Team[]>([
     { name: 'REDA', servers: [] },
@@ -192,14 +201,29 @@ export default function TeamServerDetailPage() {
                     <td>{s.asn || '—'}</td>
                     <td>{s.dateEntre}</td>
                     <td>{s.dateSortie ? <span className="notice-badge">⚠️ {s.dateSortie}</span> : '—'}</td>
-                    <td className="text-center">{s.nbrIps || '—'}</td>
-                    <td className="text-center">
-                      <span className="class-badge">{s.classType || '—'}</span>
-                    </td>
-                    <td>
-                      <span className="status-badge active-status">Active</span>
-                    </td>
-                  </tr>
+                  {(() => {
+                    // Dynamically calculate NBR IPs based on actual mappings + main IP
+                    let calculatedNbrIps = Number(s.nbrIps) || 0;
+                    if (s.ipDomains && s.ipDomains.length > 0) {
+                      const allIps = new Set(s.ipDomains.map(d => d.ip));
+                      if (s.mainIp) allIps.add(s.mainIp);
+                      calculatedNbrIps = allIps.size;
+                    }
+                    const calculatedClass = getClassFromIps(calculatedNbrIps);
+
+                    return (
+                      <React.Fragment>
+                        <td className="text-center">{calculatedNbrIps || '—'}</td>
+                        <td className="text-center">
+                          <span className="class-badge">{calculatedClass || '—'}</span>
+                        </td>
+                        <td>
+                          <span className="status-badge active-status">Active</span>
+                        </td>
+                      </React.Fragment>
+                    );
+                  })()}
+                </tr>
                 </React.Fragment>
               ))
             ) : (

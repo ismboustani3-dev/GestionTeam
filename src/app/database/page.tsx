@@ -40,7 +40,7 @@ function isCurrentMonth(dateStr: string): boolean {
 // Auto-calculate class based on number of IPs
 function getClassFromIps(nbrIps: number): string {
   if (nbrIps >= 19 && nbrIps <= 35) return '/27';
-  if (nbrIps >= 6 && nbrIps <= 18) return '/28';
+  if (nbrIps >= 7 && nbrIps <= 18) return '/28';
   if (nbrIps >= 3 && nbrIps <= 6) return '/29';
   if (nbrIps > 35) return '/26 or less';
   return '—';
@@ -325,7 +325,18 @@ export default function DatabasePage() {
             const sname = s.serverName.toLowerCase();
             if (updates.has(sname)) {
               const currentDomains = s.ipDomains || [];
-              return { ...s, ipDomains: [...currentDomains, ...updates.get(sname)!] };
+              const newMappings = [...currentDomains, ...updates.get(sname)!];
+              
+              const allIps = new Set(newMappings.map(m => m.ip));
+              if (s.mainIp) allIps.add(s.mainIp);
+              const totalIpsCount = allIps.size;
+
+              return { 
+                ...s, 
+                ipDomains: newMappings,
+                nbrIps: totalIpsCount,
+                classType: getClassFromIps(totalIpsCount)
+              };
             }
             return s;
           })
