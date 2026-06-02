@@ -735,6 +735,23 @@ export default function DatabasePage() {
             <h2>{activeTeam}</h2>
           </div>
           <div className="board-header-right">
+            <button 
+              className="minimal-btn" 
+              style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', marginRight: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.8rem' }}
+              title="Copy the names of all RED urgent servers"
+              onClick={() => {
+                const redServers = activeServers.filter(s => s.dateSortie && getNoticeColorClass(s.dateSortie) === 'urgent');
+                if (redServers.length === 0) {
+                  alert('No urgent servers found!');
+                  return;
+                }
+                const names = redServers.map(s => s.serverName).filter(Boolean).join('\n');
+                navigator.clipboard.writeText(names);
+                alert(`Copied ${redServers.length} urgent server(s) to clipboard!`);
+              }}
+            >
+              📋 Copy Urgent Servers
+            </button>
             <span className="stat-active">ACTIVE: <strong>{activeServers.length} Servers</strong></span>
             <span className="stat-new">NEW SERVER ADD: <strong>{monthNewCount} {currentMonthName}</strong></span>
             <span className="stat-del">MONTH DEL: <strong>{monthDelCount}</strong></span>
