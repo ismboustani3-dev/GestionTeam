@@ -171,6 +171,9 @@ export default function InfrastructurePage() {
 
   const handleCheckAllTeams = async () => {
     setIsAuditing(true);
+    const allTeamReports: string[] = [];
+    const now = new Date().toLocaleString('en-US');
+
     try {
       for (const team of teams) {
         const activeServers = team.servers.filter(s => s.status !== 'deleted');
@@ -203,7 +206,7 @@ export default function InfrastructurePage() {
             };
           }));
 
-          // Build Telegram notification for this team
+          // Collect failed IPs for this team
           const failedByServer: { serverName: string; failedIps: { ip: string; ptr: string }[] }[] = [];
           data.results.forEach((result: any) => {
             const server = activeServers.find(s => s.id === result.serverId);
@@ -219,31 +222,35 @@ export default function InfrastructurePage() {
             }
           });
 
-          const now = new Date().toLocaleString('en-US');
-          let msg = '';
           if (failedByServer.length > 0) {
-            msg = `🔴 <b>RDNS ALERT — Team ${team.name}</b>\n📅 ${now}\n\n`;
+            let teamMsg = `🔴 <b>Team ${team.name}</b>\n`;
             failedByServer.forEach(entry => {
-              msg += `🖥️ <b>${entry.serverName}</b>\n`;
+              teamMsg += `  🖥️ <b>${entry.serverName}</b>\n`;
               entry.failedIps.forEach(ip => {
-                msg += `   ❌ ${ip.ip} → ${ip.ptr}\n`;
+                teamMsg += `     ❌ ${ip.ip} → ${ip.ptr}\n`;
               });
-              msg += `\n`;
             });
-            msg += `⚠️ Total: ${failedByServer.reduce((sum, e) => sum + e.failedIps.length, 0)} failed IPs across ${failedByServer.length} servers`;
+            teamMsg += `  ⚠️ ${failedByServer.reduce((sum, e) => sum + e.failedIps.length, 0)} failed IPs\n`;
+            allTeamReports.push(teamMsg);
           } else {
-            msg = `✅ <b>RDNS CHECK PASSED — Team ${team.name}</b>\n📅 ${now}\n\nAll IPs have valid RDNS records! 🎉`;
+            allTeamReports.push(`✅ <b>Team ${team.name}</b> — All IPs OK!\n`);
           }
+        }
+      }
 
-          try {
-            await fetch('/api/telegram', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message: msg })
-            });
-          } catch (telegramErr) {
-            console.error('Telegram notification failed:', telegramErr);
-          }
+      // Send ONE combined Telegram message
+      if (allTeamReports.length > 0) {
+        let finalMsg = `🛡️ <b>RDNS AUDIT — ALL TEAMS</b>\n📅 ${now}\n${'─'.repeat(30)}\n\n`;
+        finalMsg += allTeamReports.join('\n');
+
+        try {
+          await fetch('/api/telegram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: finalMsg })
+          });
+        } catch (telegramErr) {
+          console.error('Telegram notification failed:', telegramErr);
         }
       }
     } catch (e) {
