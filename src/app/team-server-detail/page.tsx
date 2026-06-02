@@ -43,6 +43,22 @@ function parseDate(dateStr: string): Date | null {
   }
 }
 
+function getServerAge(dateStr: string): string {
+  const d = parseDate(dateStr);
+  if (!d) return '—';
+  
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);
+  
+  const diffTime = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 0) return 'Future';
+  if (diffDays === 0) return 'Today';
+  return `${diffDays} days`;
+}
+
 function getNoticeColorClass(dateStr: string): string {
   const d = parseDate(dateStr);
   if (!d) return 'normal';
@@ -146,6 +162,7 @@ export default function TeamServerDetailPage() {
               <th>Provider</th>
               <th>ASN</th>
               <th>Date Entre</th>
+              <th>Age</th>
               <th>Notice Date</th>
               <th>Nbr IPs</th>
               <th>Class</th>
@@ -229,6 +246,7 @@ export default function TeamServerDetailPage() {
                     <td>{s.provider || '—'}</td>
                     <td>{s.asn || '—'}</td>
                     <td>{s.dateEntre}</td>
+                    <td style={{ color: '#94a3b8' }}>{getServerAge(s.dateEntre)}</td>
                     <td>{s.dateSortie ? <span className={`notice-badge ${getNoticeColorClass(s.dateSortie)}`}>⚠️ {s.dateSortie}</span> : '—'}</td>
                   {(() => {
                     // Dynamically calculate NBR IPs based on actual mappings + main IP
@@ -257,7 +275,7 @@ export default function TeamServerDetailPage() {
               ))
             ) : (
               <tr>
-                <td colSpan={10} className="empty-row">No servers found.</td>
+                <td colSpan={11} className="empty-row">No servers found.</td>
               </tr>
             )}
           </tbody>

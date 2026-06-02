@@ -63,6 +63,22 @@ function getClassFromIps(nbrIps: number): string {
   return '—';
 }
 
+function getServerAge(dateStr: string): string {
+  const d = parseDate(dateStr);
+  if (!d) return '—';
+  
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);
+  
+  const diffTime = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 0) return 'Future';
+  if (diffDays === 0) return 'Today';
+  return `${diffDays} days`;
+}
+
 interface Team {
   name: string;
   servers: Server[];
@@ -689,6 +705,7 @@ export default function DatabasePage() {
                 <th>Server</th>
                 <th>Main IP</th>
                 <th>DateEntre</th>
+                <th>Age</th>
                 <th>Notice Date</th>
                 <th style={{textAlign: 'right'}}>Actions</th>
               </tr>
@@ -700,6 +717,7 @@ export default function DatabasePage() {
                     <td className="td-name">{s.serverName || '—'}</td>
                     <td className="td-ip">{s.mainIp}</td>
                     <td className="td-date">{s.dateEntre}</td>
+                    <td className="td-date" style={{ color: '#94a3b8' }}>{getServerAge(s.dateEntre)}</td>
                     <td>
                       {s.dateSortie ? (
                         <span className={`notice-badge ${getNoticeColorClass(s.dateSortie)}`}>⚠️ {s.dateSortie}</span>
@@ -717,7 +735,7 @@ export default function DatabasePage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="empty-row">No active servers found.</td>
+                  <td colSpan={6} className="empty-row">No active servers found.</td>
                 </tr>
               )}
             </tbody>
