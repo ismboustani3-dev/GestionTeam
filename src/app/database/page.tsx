@@ -5,6 +5,7 @@ import './Database.css';
 
 interface Server {
   id: number;
+  serverName: string;
   mainIp: string;
   provider: string;
   asn: string;
@@ -34,6 +35,15 @@ function getAgeClass(days: number): string {
   return 'age-new';
 }
 
+// Auto-calculate class based on number of IPs
+function getClassFromIps(nbrIps: number): string {
+  if (nbrIps >= 19 && nbrIps <= 35) return '/27';
+  if (nbrIps >= 6 && nbrIps <= 18) return '/28';
+  if (nbrIps >= 3 && nbrIps <= 6) return '/29';
+  if (nbrIps > 35) return '/26 or less';
+  return '—';
+}
+
 interface Team {
   name: string;
   servers: Server[];
@@ -54,6 +64,7 @@ export default function DatabasePage() {
 
   // Form state
   const [formData, setFormData] = useState({
+    serverName: '',
     mainIp: '',
     provider: '',
     asn: '',
@@ -85,15 +96,17 @@ export default function DatabasePage() {
     e.preventDefault();
     if (!formData.mainIp || !formData.dateEntre) return;
 
+    const nbrIps = Number(formData.nbrIps) || 0;
     const newServer: Server = {
       id: Date.now(),
+      serverName: formData.serverName,
       mainIp: formData.mainIp,
       provider: formData.provider,
       asn: formData.asn,
       dateEntre: formData.dateEntre,
       dateSortie: formData.dateSortie,
-      nbrIps: Number(formData.nbrIps) || 0,
-      classType: formData.classType,
+      nbrIps: nbrIps,
+      classType: getClassFromIps(nbrIps),
     };
 
     setTeams(prev =>
@@ -104,28 +117,30 @@ export default function DatabasePage() {
       )
     );
 
-    setFormData({ mainIp: '', provider: '', asn: '', dateEntre: '', dateSortie: '', nbrIps: '', classType: '' });
+    setFormData({ serverName: '', mainIp: '', provider: '', asn: '', dateEntre: '', dateSortie: '', nbrIps: '', classType: '' });
     setShowForm(false);
   };
 
   // Bulk import handler
-  // Format per line: MainIP , Provider , ASN , DateEntre , DateSortie , NbrIPs , Class
+  // Format per line: ServerName , MainIP , Provider , ASN , DateEntre , DateSortie , NbrIPs , Class
   const handleBulkImport = () => {
     const lines = bulkText.trim().split('\n').filter(l => l.trim());
     const newServers: Server[] = [];
 
     for (const line of lines) {
       const parts = line.split(',').map(p => p.trim());
-      if (parts.length >= 1 && parts[0]) {
+      if (parts.length >= 2 && parts[1]) {
+        const nbrIps = Number(parts[6]) || 0;
         newServers.push({
           id: Date.now() + Math.random(),
-          mainIp: parts[0] || '',
-          provider: parts[1] || '',
-          asn: parts[2] || '',
-          dateEntre: parts[3] || '',
-          dateSortie: parts[4] || '',
-          nbrIps: Number(parts[5]) || 0,
-          classType: parts[6] || '',
+          serverName: parts[0] || '',
+          mainIp: parts[1] || '',
+          provider: parts[2] || '',
+          asn: parts[3] || '',
+          dateEntre: parts[4] || '',
+          dateSortie: parts[5] || '',
+          nbrIps: nbrIps,
+          classType: getClassFromIps(nbrIps),
         });
       }
     }
@@ -225,12 +240,12 @@ export default function DatabasePage() {
       {showBulk && (
         <div className="bulk-form animate-fade-in">
           <h3>📋 Bulk Import Servers to {activeTeam}</h3>
-          <p className="bulk-hint">Paste one server per line. Format: <code>IP , Provider , ASN , DateEntre , DateSortie , NbrIPs , Class</code></p>
-          <p className="bulk-example">Example: <code>192.168.1.1 , OVH , AS16276 , 01/03/2026 , , 256 , C</code></p>
+          <p className="bulk-hint">Paste one server per line. Format: <code>ServerName , IP , Provider , ASN , DateEntre , DateSortie , NbrIPs , Class</code></p>
+          <p className="bulk-example">Example: <code>SRV-01 , 192.168.1.1 , OVH , AS16276 , 01/03/2026 , , 256 , C</code></p>
           <textarea
             className="bulk-textarea"
             rows={10}
-            placeholder={'192.168.1.1 , OVH , AS16276 , 01/03/2026 , , 256 , C\n10.0.0.1 , Hetzner , AS24940 , 15/02/2026 , , 512 , B\n172.16.0.1 , AWS , AS16509 , 20/01/2026 , 01/06/2026 , 128 , A'}
+            placeholder={'SRV-01 , 192.168.1.1 , OVH , AS16276 , 01/03/2026 , , 256 , C\nSRV-02 , 10.0.0.1 , Hetzner , AS24940 , 15/02/2026 , , 512 , B\nSRV-03 , 172.16.0.1 , AWS , AS16509 , 20/01/2026 , 01/06/2026 , 128 , A'}
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
           />
@@ -246,6 +261,15 @@ export default function DatabasePage() {
         <form className="add-form animate-fade-in" onSubmit={handleAddServer}>
           <h3>➕ Add Server to {activeTeam}</h3>
           <div className="form-grid">
+            <div className="form-group">
+              <label>Server Name</label>
+              <input
+                type="text"
+                placeholder="SRV-01"
+                value={formData.serverName}
+                onChange={(e) => setFormData({ ...formData, serverName: e.target.value })}
+              />
+            </div>
             <div className="form-group">
               <label>Main IP *</label>
               <input
@@ -297,19 +321,16 @@ export default function DatabasePage() {
               <label>Nbr IPs</label>
               <input
                 type="number"
-                placeholder="256"
+                placeholder="6"
                 value={formData.nbrIps}
                 onChange={(e) => setFormData({ ...formData, nbrIps: e.target.value })}
               />
             </div>
             <div className="form-group">
-              <label>Class</label>
-              <input
-                type="text"
-                placeholder="A, B, C..."
-                value={formData.classType}
-                onChange={(e) => setFormData({ ...formData, classType: e.target.value })}
-              />
+              <label>Class (auto)</label>
+              <div className="auto-class-display">
+                {formData.nbrIps ? getClassFromIps(Number(formData.nbrIps)) : '—'}
+              </div>
             </div>
           </div>
           <button type="submit" className="submit-btn">✓ Add Server</button>
@@ -335,7 +356,7 @@ export default function DatabasePage() {
                 return (
                   <tr key={s.id}>
                     <td className="td-id">{idx + 1}</td>
-                    <td className="td-ip">{s.mainIp}</td>
+                    <td className="td-ip">{s.serverName ? `${s.serverName} / ${s.mainIp}` : s.mainIp}</td>
                     <td className="td-date">{s.dateEntre}</td>
                     <td className="td-date">{s.dateSortie || '—'}</td>
                     <td>
