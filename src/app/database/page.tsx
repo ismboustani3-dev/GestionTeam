@@ -39,10 +39,10 @@ function isCurrentMonth(dateStr: string): boolean {
 
 // Auto-calculate class based on number of IPs
 function getClassFromIps(nbrIps: number): string {
-  if (nbrIps >= 19 && nbrIps <= 35) return '/27';
-  if (nbrIps >= 7 && nbrIps <= 18) return '/28';
-  if (nbrIps >= 3 && nbrIps <= 6) return '/29';
-  if (nbrIps > 35) return '/26 or less';
+  if (nbrIps >= 19 && nbrIps <= 35) return '27';
+  if (nbrIps >= 7 && nbrIps <= 18) return '28';
+  if (nbrIps >= 3 && nbrIps <= 6) return '29';
+  if (nbrIps > 35) return '26 or less';
   return '—';
 }
 
