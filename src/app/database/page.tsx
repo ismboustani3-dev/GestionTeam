@@ -375,7 +375,7 @@ export default function DatabasePage() {
           <div className="db-tabs">
             {teams.map(team => {
               const activeCount = team.servers.filter(s => s.status !== 'deleted').length;
-              const cancelCount = team.servers.filter(s => s.status !== 'deleted' && s.dateSortie).length;
+              const cancelCount = team.servers.filter(s => s.status === 'deleted' && s.dateSortie && isCurrentMonth(s.dateSortie)).length;
               return (
                 <button
                   key={team.name}
