@@ -29,6 +29,7 @@ export default function TeamServerDetailPage() {
   ]);
   const [activeTeam, setActiveTeam] = useState<string>('REDA');
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedServerId, setExpandedServerId] = useState<number | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('gestiq_teams_data');
@@ -103,6 +104,7 @@ export default function TeamServerDetailPage() {
             <tr>
               <th>Server Name</th>
               <th>Main IP</th>
+              <th>Domain</th>
               <th>Provider</th>
               <th>ASN</th>
               <th>Date Entre</th>
@@ -118,7 +120,30 @@ export default function TeamServerDetailPage() {
                 <React.Fragment key={s.id}>
                   <tr>
                     <td className="fw-600 color-primary">{s.serverName || '—'}</td>
-                    <td className="font-mono">{s.mainIp}</td>
+                    <td className="font-mono">
+                      <div style={{ marginBottom: s.ipDomains && s.ipDomains.length > 0 ? '0.2rem' : '0' }}>{s.mainIp}</div>
+                      {s.ipDomains && s.ipDomains.length > 0 && (
+                        <button 
+                          className="more-badge" 
+                          onClick={() => setExpandedServerId(expandedServerId === s.id ? null : s.id)}
+                        >
+                          +{s.ipDomains.length} more
+                        </button>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ marginBottom: s.ipDomains && s.ipDomains.length > 0 ? '0.2rem' : '0' }}>
+                        {s.ipDomains && s.ipDomains.length > 0 ? s.ipDomains[0].domain : '—'}
+                      </div>
+                      {s.ipDomains && s.ipDomains.length > 0 && (
+                        <button 
+                          className="more-badge" 
+                          onClick={() => setExpandedServerId(expandedServerId === s.id ? null : s.id)}
+                        >
+                          +{s.ipDomains.length} more
+                        </button>
+                      )}
+                    </td>
                     <td>{s.provider || '—'}</td>
                     <td>{s.asn || '—'}</td>
                     <td>{s.dateEntre}</td>
@@ -131,9 +156,9 @@ export default function TeamServerDetailPage() {
                       <span className="status-badge active-status">Active</span>
                     </td>
                   </tr>
-                  {s.ipDomains && s.ipDomains.length > 0 && (
-                    <tr className="ip-domain-row">
-                      <td colSpan={9} className="ip-domain-cell">
+                  {s.ipDomains && s.ipDomains.length > 0 && expandedServerId === s.id && (
+                    <tr className="ip-domain-row animate-fade-in">
+                      <td colSpan={10} className="ip-domain-cell">
                         <div className="ip-domain-list">
                           <strong>🌐 Mapped IPs & Domains ({s.ipDomains.length}):</strong>
                           <ul>
@@ -152,7 +177,7 @@ export default function TeamServerDetailPage() {
               ))
             ) : (
               <tr>
-                <td colSpan={9} className="empty-row">No servers found.</td>
+                <td colSpan={10} className="empty-row">No servers found.</td>
               </tr>
             )}
           </tbody>
