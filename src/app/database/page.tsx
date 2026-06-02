@@ -113,7 +113,7 @@ export default function DatabasePage() {
 
   const [activeTeam, setActiveTeam] = useState<string>('REDA');
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterField, setFilterField] = useState<'all' | 'ip' | 'provider' | 'asn'>('all');
+  const [filterField, setFilterField] = useState<'all' | 'ip' | 'domain' | 'serverName'>('all');
   const [showForm, setShowForm] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
   const [showBulkCancel, setShowBulkCancel] = useState(false);
@@ -145,13 +145,20 @@ export default function DatabasePage() {
   const filteredActiveServers = activeServers.filter(s => {
     const term = searchTerm.toLowerCase();
     if (!term) return true;
-    if (filterField === 'ip') return s.mainIp.toLowerCase().includes(term);
-    if (filterField === 'provider') return s.provider.toLowerCase().includes(term);
-    if (filterField === 'asn') return s.asn.toLowerCase().includes(term);
+    
+    // Helper to check domain mappings
+    const matchesDomain = s.ipDomains && s.ipDomains.some(d => d.domain.toLowerCase().includes(term));
+    
+    if (filterField === 'ip') return (s.mainIp || '').toLowerCase().includes(term) || (s.ipDomains && s.ipDomains.some(d => d.ip.toLowerCase().includes(term)));
+    if (filterField === 'domain') return matchesDomain;
+    if (filterField === 'serverName') return (s.serverName || '').toLowerCase().includes(term);
+    
     return (
-      s.mainIp.toLowerCase().includes(term) ||
-      s.provider.toLowerCase().includes(term) ||
-      s.asn.toLowerCase().includes(term)
+      (s.serverName || '').toLowerCase().includes(term) ||
+      (s.mainIp || '').toLowerCase().includes(term) ||
+      (s.provider || '').toLowerCase().includes(term) ||
+      (s.asn || '').toLowerCase().includes(term) ||
+      matchesDomain
     );
   });
 
@@ -527,12 +534,12 @@ export default function DatabasePage() {
             <select
               className="filter-select"
               value={filterField}
-              onChange={(e) => setFilterField(e.target.value as 'all' | 'ip' | 'provider' | 'asn')}
+              onChange={(e) => setFilterField(e.target.value as 'all' | 'ip' | 'domain' | 'serverName')}
             >
-              <option value="all">All Fields</option>
-              <option value="ip">IP</option>
-              <option value="provider">Provider</option>
-              <option value="asn">ASN</option>
+              <option value="all">Search All Fields</option>
+              <option value="ip">By IP</option>
+              <option value="domain">By Domain</option>
+              <option value="serverName">By Master Server Name</option>
             </select>
           </div>
           <div className="db-search">

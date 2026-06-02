@@ -15,6 +15,9 @@ interface Server {
   classType: string;
   status?: 'active' | 'deleted';
   ipDomains?: { ip: string, domain: string }[];
+  rdnsStatus?: 'OK' | 'FAIL';
+  rdnsDate?: string;
+  rdnsDetails?: any[];
 }
 
 interface Team {
@@ -83,6 +86,48 @@ export default function TeamServerDetailPage() {
   const [activeTeam, setActiveTeam] = useState<string>('REDA');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedServerId, setExpandedServerId] = useState<string | null>(null);
+  
+  const [isAuditing, setIsAuditing] = useState(false);
+  const [auditModalData, setAuditModalData] = useState<{serverName: string, details: any[]} | null>(null);
+
+  const handleRunAudit = async () => {
+    setIsAuditing(true);
+    try {
+      const response = await fetch('/api/rdns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ servers: currentTeam?.servers.filter(s => s.status !== 'deleted') || [] })
+      });
+      const data = await response.json();
+      if (data.results) {
+        setTeams(prev => prev.map(t => {
+          if (t.name === activeTeam) {
+            return {
+              ...t,
+              servers: t.servers.map(s => {
+                const result = data.results.find((r: any) => r.serverId === s.id);
+                if (result) {
+                  return {
+                    ...s,
+                    rdnsStatus: result.overallMatch ? 'OK' : 'FAIL',
+                    rdnsDate: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                    rdnsDetails: result.queries
+                  };
+                }
+                return s;
+              })
+            };
+          }
+          return t;
+        }));
+        // Note: I also need to save this to localStorage, but we'll let the existing useEffect do that.
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to run RDNS Audit');
+    }
+    setIsAuditing(false);
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem('gestiq_teams_data');
@@ -171,15 +216,24 @@ export default function TeamServerDetailPage() {
             );
           })}
         </div>
-        <div className="detail-search">
-          <span className="search-icon">🔍</span>
-          <input
-            type="text"
-            placeholder="Search Server, IP, Provider..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
+        <div className="detail-search" style={{ display: 'flex', gap: '1rem', width: 'auto' }}>
+          <button 
+            className="rdns-audit-btn" 
+            onClick={handleRunAudit}
+            disabled={isAuditing}
+          >
+            {isAuditing ? 'Auditing...' : '🛡️ Run RDNS Audit'}
+          </button>
+          <div style={{ position: 'relative', width: '300px' }}>
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Search Server, IP, Provider..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
         </div>
       </div>
 
@@ -246,6 +300,7 @@ export default function TeamServerDetailPage() {
               <th>Notice Date</th>
               <th>Nbr IPs</th>
               <th>Class</th>
+              <th>RDNS</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -345,6 +400,20 @@ export default function TeamServerDetailPage() {
                           <span className="class-badge">{calculatedClass || '—'}</span>
                         </td>
                         <td>
+                          {s.rdnsStatus ? (
+                            <div className="rdns-cell">
+                              <button 
+                                className={`rdns-badge ${s.rdnsStatus === 'OK' ? 'rdns-ok' : 'rdns-fail'}`}
+                                onClick={() => setAuditModalData({ serverName: s.serverName, details: s.rdnsDetails || [] })}
+                              >
+                                RDNS {s.rdnsStatus} <span style={{fontSize:'1rem'}}>↗</span>
+                              </button>
+                              {s.ipDomains && s.ipDomains.length > 0 && <div className="rdns-domain">{s.ipDomains[0].domain}</div>}
+                              {s.rdnsDate && <div className="rdns-date">{s.rdnsDate}</div>}
+                            </div>
+                          ) : '—'}
+                        </td>
+                        <td>
                           <span className="status-badge active-status">Active</span>
                         </td>
                       </React.Fragment>
@@ -361,6 +430,66 @@ export default function TeamServerDetailPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Audit Details Modal */}
+      {auditModalData && (
+        <div className="modal-overlay">
+          <div className="audit-modal animate-fade-in">
+            <div className="audit-modal-header">
+              <h2>Audit Details: {auditModalData.serverName}</h2>
+              <button className="close-btn" onClick={() => setAuditModalData(null)}>✕</button>
+            </div>
+            <div className="audit-modal-body">
+              <table className="audit-table">
+                <thead>
+                  <tr>
+                    <th>QUERY</th>
+                    <th>TYPE</th>
+                    <th>RESULT (DNS ANSWER)</th>
+                    <th>MATCH</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Reverse DNS Section */}
+                  <tr className="audit-section-row">
+                    <td colSpan={4}>REVERSE DNS (IP → PTR)</td>
+                  </tr>
+                  {auditModalData.details.filter(d => d.type === 'PTR').map((d, idx) => (
+                    <tr key={`ptr-${idx}`}>
+                      <td>{d.query}</td>
+                      <td>{d.type}</td>
+                      <td className={d.match === 'OK' ? 'color-success' : 'color-danger'}>{d.result || 'No Record'}</td>
+                      <td>{d.match}</td>
+                    </tr>
+                  ))}
+                  
+                  {/* Forward DNS Section */}
+                  <tr className="audit-section-row">
+                    <td colSpan={4}>FORWARD DNS (DOMAIN → A)</td>
+                  </tr>
+                  {auditModalData.details.filter(d => d.type === 'A').map((d, idx) => (
+                    <tr key={`a-${idx}`}>
+                      <td>{d.query}</td>
+                      <td>{d.type}</td>
+                      <td className={d.match === 'OK' ? 'color-success' : 'color-danger'}>{d.result || 'No Record'}</td>
+                      <td>{d.match}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="audit-modal-footer">
+              <button className="rdns-audit-btn" style={{ padding: '0.5rem 1.5rem' }} onClick={() => {
+                 setAuditModalData(null);
+                 handleRunAudit();
+              }}>
+                🔄 Re-Scan Now
+              </button>
+              <button className="minimal-btn" onClick={() => setAuditModalData(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
