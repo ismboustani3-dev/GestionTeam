@@ -29,7 +29,7 @@ export default function TeamServerDetailPage() {
   ]);
   const [activeTeam, setActiveTeam] = useState<string>('REDA');
   const [searchTerm, setSearchTerm] = useState('');
-  const [expandedServerId, setExpandedServerId] = useState<number | null>(null);
+  const [expandedServerId, setExpandedServerId] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('gestiq_teams_data');
@@ -120,28 +120,72 @@ export default function TeamServerDetailPage() {
                 <React.Fragment key={s.id}>
                   <tr>
                     <td className="fw-600 color-primary">{s.serverName || '—'}</td>
-                    <td className="font-mono">
+                    <td className="font-mono" style={{ position: 'relative' }}>
                       <div style={{ marginBottom: s.ipDomains && s.ipDomains.length > 0 ? '0.2rem' : '0' }}>{s.mainIp}</div>
                       {s.ipDomains && s.ipDomains.length > 0 && (
                         <button 
                           className="more-badge" 
-                          onClick={() => setExpandedServerId(expandedServerId === s.id ? null : s.id)}
+                          onClick={() => setExpandedServerId(expandedServerId === s.id + '-ip' ? null : s.id + '-ip')}
                         >
                           +{s.ipDomains.length} more
                         </button>
                       )}
+                      {/* IP Popover */}
+                      {s.ipDomains && expandedServerId === s.id + '-ip' && (
+                        <div className="custom-popover animate-fade-in">
+                          <div className="popover-header">
+                            <span className="popover-title">SERVER IPS</span>
+                            <button 
+                              className="popover-copy-btn"
+                              onClick={() => {
+                                const ips = s.ipDomains?.map(d => d.ip).join('\n') || '';
+                                navigator.clipboard.writeText(ips);
+                              }}
+                            >Copy All</button>
+                          </div>
+                          <div className="popover-body">
+                            {s.ipDomains.map((ipd, idx) => (
+                              <div key={idx} className="popover-row font-mono">
+                                {ipd.ip}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </td>
-                    <td>
+                    <td style={{ position: 'relative' }}>
                       <div style={{ marginBottom: s.ipDomains && s.ipDomains.length > 0 ? '0.2rem' : '0' }}>
                         {s.ipDomains && s.ipDomains.length > 0 ? s.ipDomains[0].domain : '—'}
                       </div>
                       {s.ipDomains && s.ipDomains.length > 0 && (
                         <button 
                           className="more-badge" 
-                          onClick={() => setExpandedServerId(expandedServerId === s.id ? null : s.id)}
+                          onClick={() => setExpandedServerId(expandedServerId === s.id + '-domain' ? null : s.id + '-domain')}
                         >
                           +{s.ipDomains.length} more
                         </button>
+                      )}
+                      {/* Domain Popover */}
+                      {s.ipDomains && expandedServerId === s.id + '-domain' && (
+                        <div className="custom-popover animate-fade-in">
+                          <div className="popover-header">
+                            <span className="popover-title">SERVER DOMAINS</span>
+                            <button 
+                              className="popover-copy-btn"
+                              onClick={() => {
+                                const domains = s.ipDomains?.map(d => d.domain).join('\n') || '';
+                                navigator.clipboard.writeText(domains);
+                              }}
+                            >Copy All</button>
+                          </div>
+                          <div className="popover-body">
+                            {s.ipDomains.map((ipd, idx) => (
+                              <div key={idx} className="popover-row">
+                                {ipd.domain}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </td>
                     <td>{s.provider || '—'}</td>
@@ -156,23 +200,6 @@ export default function TeamServerDetailPage() {
                       <span className="status-badge active-status">Active</span>
                     </td>
                   </tr>
-                  {s.ipDomains && s.ipDomains.length > 0 && expandedServerId === s.id && (
-                    <tr className="ip-domain-row animate-fade-in">
-                      <td colSpan={10} className="ip-domain-cell">
-                        <div className="ip-domain-list">
-                          <strong>🌐 Mapped IPs & Domains ({s.ipDomains.length}):</strong>
-                          <ul>
-                            {s.ipDomains.map((ipd, idx) => (
-                              <li key={idx}>
-                                <span className="mapped-ip">{ipd.ip}</span>
-                                <span className="mapped-domain">{ipd.domain}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
                 </React.Fragment>
               ))
             ) : (

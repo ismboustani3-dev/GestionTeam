@@ -135,8 +135,8 @@
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
-  overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  /* overflow is visible to allow popovers */
 }
 
 .detail-table {
@@ -238,14 +238,75 @@
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-.ip-domain-row {
-  background: rgba(15, 23, 42, 0.3) !important;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+/* Popovers */
+.detail-table-container {
+  overflow: visible; /* To allow popovers to show outside */
 }
 
-.ip-domain-cell {
-  padding: 0 1.25rem 1rem 1.25rem !important;
-  border-bottom: none !important;
+.custom-popover {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 50;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  width: max-content;
+  min-width: 280px;
+  max-width: 350px;
+  padding: 1rem;
+}
+
+.popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.popover-title {
+  color: #2dd4bf;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.popover-copy-btn {
+  background: #06b6d4;
+  color: #fff;
+  border: none;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.popover-copy-btn:hover {
+  opacity: 0.8;
+}
+
+.popover-body {
+  max-height: 250px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.popover-row {
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  font-size: 0.85rem;
+  color: #e2e8f0;
+}
+
+.popover-row:last-child {
+  border-bottom: none;
 }
 
 .ip-domain-list {
