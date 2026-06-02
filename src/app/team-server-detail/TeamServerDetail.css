@@ -181,12 +181,27 @@
 .text-center { text-align: center; }
 
 .notice-badge {
-  color: #f59e0b;
   font-weight: 600;
   font-size: 0.85rem;
-  background: rgba(245, 158, 11, 0.1);
   padding: 0.25rem 0.5rem;
   border-radius: 6px;
+}
+
+.notice-badge.normal {
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.notice-badge.warning {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.notice-badge.urgent {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .class-badge {

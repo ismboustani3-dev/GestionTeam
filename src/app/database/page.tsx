@@ -37,6 +37,23 @@ function isCurrentMonth(dateStr: string): boolean {
   return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
 }
 
+function getNoticeColorClass(dateStr: string): string {
+  const d = parseDate(dateStr);
+  if (!d) return 'normal';
+  
+  const now = new Date();
+  // reset time to midnight for accurate day diff
+  now.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);
+  
+  const diffTime = d.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays <= 3) return 'urgent';
+  if (diffDays <= 7) return 'warning';
+  return 'normal';
+}
+
 // Auto-calculate class based on number of IPs
 function getClassFromIps(nbrIps: number): string {
   if (nbrIps >= 19 && nbrIps <= 35) return '27';
@@ -685,7 +702,7 @@ export default function DatabasePage() {
                     <td className="td-date">{s.dateEntre}</td>
                     <td>
                       {s.dateSortie ? (
-                        <span className="notice-date">⚠️ {s.dateSortie}</span>
+                        <span className={`notice-badge ${getNoticeColorClass(s.dateSortie)}`}>⚠️ {s.dateSortie}</span>
                       ) : (
                         <span className="td-date">—</span>
                       )}
@@ -739,8 +756,10 @@ export default function DatabasePage() {
                       <tr key={s.id}>
                         <td className="td-name">{s.serverName || '—'}</td>
                         <td className="td-ip">{s.mainIp}</td>
-                        <td className="td-date">{s.dateEntre}</td>
-                        <td className="notice-date">{s.dateSortie}</td>
+                        <td>{s.asn}</td>
+                        <td>{s.dateEntre}</td>
+                        <td>{s.dateSortie ? <span className={`notice-badge ${getNoticeColorClass(s.dateSortie)}`}>⚠️ {s.dateSortie}</span> : '—'}</td>
+                        <td className="text-center">{s.nbrIps}</td>
                         <td className="td-date">{s.dateDeclaration || s.dateSortie || '—'}</td>
                         <td style={{textAlign: 'right'}}>
                           <div className="action-buttons-right">

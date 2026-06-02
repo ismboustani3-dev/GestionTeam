@@ -31,6 +31,35 @@ function getClassFromIps(nbrIps: number): string {
   return '—';
 }
 
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  const parts = dateStr.includes('/') ? dateStr.split('/') : dateStr.split('-');
+  if (parts.length !== 3) return null;
+  
+  if (dateStr.includes('/')) {
+    return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+  } else {
+    return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  }
+}
+
+function getNoticeColorClass(dateStr: string): string {
+  const d = parseDate(dateStr);
+  if (!d) return 'normal';
+  
+  const now = new Date();
+  // reset time to midnight for accurate day diff
+  now.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);
+  
+  const diffTime = d.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays <= 3) return 'urgent';
+  if (diffDays <= 7) return 'warning';
+  return 'normal';
+}
+
 export default function TeamServerDetailPage() {
   const [teams, setTeams] = useState<Team[]>([
     { name: 'REDA', servers: [] },
@@ -200,7 +229,7 @@ export default function TeamServerDetailPage() {
                     <td>{s.provider || '—'}</td>
                     <td>{s.asn || '—'}</td>
                     <td>{s.dateEntre}</td>
-                    <td>{s.dateSortie ? <span className="notice-badge">⚠️ {s.dateSortie}</span> : '—'}</td>
+                    <td>{s.dateSortie ? <span className={`notice-badge ${getNoticeColorClass(s.dateSortie)}`}>⚠️ {s.dateSortie}</span> : '—'}</td>
                   {(() => {
                     // Dynamically calculate NBR IPs based on actual mappings + main IP
                     let calculatedNbrIps = Number(s.nbrIps) || 0;
