@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import dns from 'dns/promises';
+import { getUniqueIpDomains } from '@/lib/ipUtils';
 
 export async function POST(request: Request) {
   try {
@@ -19,8 +20,9 @@ export async function POST(request: Request) {
       };
 
       // 1. Check mapped domains (Forward and Reverse)
-      if (server.ipDomains && server.ipDomains.length > 0) {
-        for (const mapping of server.ipDomains) {
+      const uniqueIpDomains = getUniqueIpDomains(server.ipDomains);
+      if (uniqueIpDomains.length > 0) {
+        for (const mapping of uniqueIpDomains) {
           // IP -> PTR
           try {
             const ptrs = await dns.reverse(mapping.ip);

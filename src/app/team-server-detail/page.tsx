@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { loadTeamsFromFirebase, saveTeamsToFirebase } from '@/lib/firebaseTeams';
 import './TeamServerDetail.css';
 
 interface Server {
@@ -13,7 +15,7 @@ interface Server {
   dateSortie: string;
   nbrIps: number;
   classType: string;
-  status?: 'active' | 'deleted';
+  status?: 'active' | 'deleted' | 'tocancel';
   ipDomains?: { ip: string, domain: string }[];
   rdnsStatus?: 'OK' | 'FAIL';
   rdnsDate?: string;
@@ -129,16 +131,24 @@ export default function TeamServerDetailPage() {
     setIsAuditing(false);
   };
 
+  const [isTeamsLoaded, setIsTeamsLoaded] = useState(false);
+
   useEffect(() => {
-    const saved = localStorage.getItem('gestiq_teams_data');
-    if (saved) {
-      try {
-        setTeams(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to load saved data");
+    const load = async () => {
+      const data = await loadTeamsFromFirebase();
+      if (data && data.length > 0) {
+        setTeams(data);
       }
-    }
+      setIsTeamsLoaded(true);
+    };
+    load();
   }, []);
+
+  useEffect(() => {
+    if (isTeamsLoaded) {
+      saveTeamsToFirebase(teams);
+    }
+  }, [teams, isTeamsLoaded]);
 
   const currentTeam = teams.find(t => t.name === activeTeam);
   
@@ -308,8 +318,13 @@ export default function TeamServerDetailPage() {
             {filteredServers.length > 0 ? (
               filteredServers.map(s => (
                 <React.Fragment key={s.id}>
-                  <tr>
-                    <td className="fw-600 color-primary">{s.serverName || '—'}</td>
+                  <tr style={s.status === 'tocancel' ? { background: 'rgba(249, 115, 22, 0.08)' } : undefined}>
+                    <td className="fw-600 color-primary">
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ color: s.status === 'tocancel' ? '#f97316' : undefined, fontWeight: 600 }}>{s.serverName || '—'}</span>
+                        {s.status === 'tocancel' && <span style={{ fontSize: '0.75rem', color: '#f97316', fontWeight: 'bold' }}>tocancel</span>}
+                      </div>
+                    </td>
                     <td className="font-mono" style={{ position: 'relative' }}>
                       <div style={{ marginBottom: s.ipDomains && s.ipDomains.length > 0 ? '0.2rem' : '0' }}>{s.mainIp}</div>
                       {s.ipDomains && s.ipDomains.length > 0 && (
@@ -414,7 +429,11 @@ export default function TeamServerDetailPage() {
                           ) : '—'}
                         </td>
                         <td>
-                          <span className="status-badge active-status">Active</span>
+                          {s.status === 'tocancel' ? (
+                            <span className="status-badge" style={{ background: 'rgba(249, 115, 22, 0.2)', color: '#f97316', border: '1px solid rgba(249, 115, 22, 0.3)' }}>To Cancel</span>
+                          ) : (
+                            <span className="status-badge active-status">Active</span>
+                          )}
                         </td>
                       </React.Fragment>
                     );

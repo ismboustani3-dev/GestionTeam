@@ -1,0 +1,179 @@
+.table-container {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  margin-top: 1rem;
+}
+
+.merged-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.merged-table thead tr {
+  background: linear-gradient(90deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8));
+}
+
+.merged-table th {
+  padding: 1.5rem 1.2rem;
+  text-align: left;
+  font-weight: 600;
+  color: #94a3b8;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.merged-table td {
+  padding: 1rem 1.2rem;
+  color: #e2e8f0;
+  vertical-align: middle;
+  font-size: 1.05rem;
+}
+
+/* Subtle hover effect for rows */
+.merged-table tr {
+  transition: background-color 0.2s ease;
+}
+.merged-table tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Server cell styling */
+.merged-table td.server-cell {
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+  color: #38bdf8;
+  vertical-align: middle;
+  text-align: left;
+  padding-left: 2rem;
+  background: rgba(15, 23, 42, 0.3);
+  font-size: 1.1rem;
+}
+
+/* Thick border and extra padding between servers to make separation clear */
+.merged-table tr.last-row td {
+  border-bottom: 4px solid rgba(56, 189, 248, 0.2);
+  padding-bottom: 1.5rem;
+}
+
+.merged-table tr:not(:first-child) td.server-cell {
+  padding-top: 1.5rem;
+}
+
+/* No border between IPs of the same server */
+.merged-table tr:not(.last-row) td:not(.server-cell) {
+  border-bottom: none;
+}
+
+/* Custom styling for Check Type segmented control */
+.check-type-toggle {
+  display: flex;
+  background: rgba(15, 23, 42, 0.5);
+  padding: 0.3rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 0.3rem;
+}
+
+.check-type-btn {
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.check-type-btn:hover:not(.active) {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.check-type-btn.active {
+  background: #6366f1;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* Pending dash color */
+.status-pending-dash {
+  color: #475569;
+  font-weight: bold;
+}
+
+/* Schedules Grid Layout */
+.schedules-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1.8fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 900px) {
+  .schedules-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Switch styling */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: .4s;
+  border-radius: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #10b981;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #10b981;
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
+}

@@ -1,0 +1,323 @@
+.ip-status-container {
+  padding: 1.5rem;
+  color: #e2e8f0;
+  width: 100%;
+  margin: 0;
+}
+
+.ip-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.ip-status-header h1 {
+  font-size: 1.8rem;
+  color: #fff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.imap-sync-panel {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.9rem 1.2rem;
+  display: flex;
+  gap: 1.1rem;
+  align-items: center;
+}
+
+.imap-sync-panel input, .imap-sync-panel select {
+  padding: 0.75rem 1rem;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 1.15rem;
+  outline: none;
+}
+
+.sync-btn {
+  padding: 0.75rem 1.25rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1.15rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: opacity 0.2s;
+}
+
+.sync-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.sync-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.controls-bar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.controls-bar input, .controls-bar select {
+  padding: 0.6rem;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #fff;
+}
+
+.status-legend {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  background: rgba(15, 23, 42, 0.5);
+  padding: 0.8rem;
+  border-radius: 8px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+}
+
+.matrix-container {
+  background: #1e293b;
+  border-radius: 8px;
+  overflow: auto;
+  max-height: calc(100vh - 250px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  text-align: center;
+  table-layout: fixed;
+}
+
+.matrix-table th {
+  position: sticky;
+  top: 0;
+  background: #0f172a;
+  z-index: 10;
+  padding: 0.5rem 0.5rem;
+  font-weight: 600;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  white-space: nowrap;
+}
+
+.matrix-table th:first-child, .matrix-table th:nth-child(2) {
+  z-index: 11;
+  text-align: left;
+  padding-left: 0.5rem;
+}
+
+.matrix-table td {
+  padding: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  height: 30px;
+}
+
+.server-cell {
+  padding: 0 0.5rem !important;
+  text-align: left;
+  font-weight: 600;
+  color: #f59e0b;
+  background: rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+}
+
+.ip-cell {
+  padding: 0 0.5rem !important;
+  text-align: left;
+  background: rgba(0, 0, 0, 0.1);
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+.status-cell {
+  cursor: pointer;
+  width: auto;
+  min-width: 100px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  transition: filter 0.2s;
+  text-transform: uppercase;
+}
+
+.status-cell:hover {
+  filter: brightness(1.2);
+}
+
+/* Status Colors */
+.bg-rp-test { background-color: #22c55e !important; color: #000 !important; }
+.bg-spam { background-color: #ef4444 !important; color: #fff !important; }
+.bg-paused { background-color: #3b82f6 !important; color: #fff !important; }
+.bg-change-dom { background-color: #eab308 !important; color: #000 !important; }
+.bg-rdns { background-color: #15803d !important; color: #fff !important; }
+.bg-rdns-not-active { background-color: #7c3aed !important; color: #fff !important; }
+.bg-down { background-color: #f97316 !important; color: #000 !important; }
+.bg-bounce { background-color: #ec4899 !important; color: #fff !important; }
+.bg-to { background-color: #64748b !important; color: #fff !important; }
+.bg-none { background-color: transparent !important; }
+
+/* Totals Row */
+.totals-row td {
+  background: #0f172a;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.totals-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.totals-stack > div {
+  padding: 0.2rem 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Modal */
+.status-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+.status-modal {
+  background: #1e293b;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 300px;
+}
+
+.status-modal h3 {
+  margin: 0 0 1rem;
+  text-align: center;
+}
+
+.status-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.status-btn {
+  padding: 0.6rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+/* Schedules Grid Layout */
+.schedules-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1.8fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 900px) {
+  .schedules-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Switch styling */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: .4s;
+  border-radius: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #10b981;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #10b981;
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
+}
+
+/* Floating toast notification */
+.toast-rp {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  z-index: 1000;
+  font-weight: 600;
+  font-size: 0.9rem;
+  backdrop-filter: blur(8px);
+}
+

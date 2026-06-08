@@ -1,0 +1,509 @@
+.spf-check-container {
+  padding: 1.5rem;
+  color: #e2e8f0;
+  width: 100%;
+  margin: 0;
+}
+
+.spf-check-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.spf-check-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #3b82f6, #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.spf-check-header p {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+/* Team Switcher Tabs */
+.spf-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.5rem;
+}
+
+.spf-tab {
+  padding: 0.8rem 1.5rem;
+  font-weight: 600;
+  color: #94a3b8;
+  border-radius: 12px 12px 0 0;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.spf-tab:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.spf-tab.active {
+  color: #fff;
+  background: #3b82f6;
+  box-shadow: 0 -4px 15px rgba(59, 130, 246, 0.2);
+}
+
+.tab-count-badge {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.1rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.spf-tab.active .tab-count-badge {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Filters & Actions row */
+.filters-actions-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.search-filters-pane {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.search-filters-pane input.search {
+  padding: 0.5rem 0.8rem;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  width: 240px;
+}
+
+.search-filters-pane input.search:focus {
+  border-color: #3b82f6;
+  outline: none;
+}
+
+.filter-select-spf {
+  padding: 0.5rem 0.8rem;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.filter-select-spf:focus {
+  border-color: #3b82f6;
+}
+
+.spf-check-container select option {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+.actions-pane {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.btn-spf-action {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid transparent;
+  color: #fff;
+}
+
+.btn-spf-action:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-spf-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-spf-action.primary {
+  background: #3b82f6;
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.btn-spf-action.secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+}
+
+.btn-spf-action.secondary:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Progress bar check indicator */
+.progress-checking-container {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.progress-checking-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+.progress-checking-bar {
+  background: rgba(255, 255, 255, 0.05);
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-checking-fill {
+  background: linear-gradient(90deg, #3b82f6, #818cf8);
+  height: 100%;
+  transition: width 0.2s ease;
+}
+
+/* SPF Table design */
+.spf-table-container {
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  max-height: calc(100vh - 290px);
+}
+
+.spf-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.spf-table th {
+  padding: 1rem 0.8rem;
+  font-weight: 600;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  background: rgba(30, 41, 59, 0.6);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.spf-table td {
+  padding: 0.8rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+  vertical-align: middle;
+  font-size: 0.9rem;
+}
+
+.spf-table tr {
+  transition: background-color 0.2s ease;
+}
+
+.spf-table tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.server-cell {
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.ip-cell {
+  font-family: monospace;
+  color: #94a3b8;
+}
+
+.domain-cell {
+  font-family: monospace;
+  color: #e2e8f0;
+}
+
+.spf-record-cell {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: #64748b;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spf-record-cell:hover {
+  white-space: normal;
+  word-break: break-all;
+  color: #94a3b8;
+}
+
+.date-cell {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Badges */
+.badge-spf {
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+.badge-spf.ok {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-spf.fail {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge-spf.pending {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+/* Fail Reason */
+.fail-reason {
+  display: block;
+  font-size: 0.75rem;
+  color: #fca5a5;
+  margin-top: 0.2rem;
+  font-weight: 500;
+}
+
+/* Scheduling Panel styling */
+.schedules-grid {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.new-schedule-card {
+  flex: 1 1 280px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  padding: 1.2rem;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.schedule-title {
+  margin: 0 0 1rem;
+  color: #10b981;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.schedule-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+}
+
+.schedule-inputs input,
+.schedule-inputs select {
+  padding: 0.6rem 0.8rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 1rem;
+  outline: none;
+}
+
+.schedule-inputs input:focus,
+.schedule-inputs select:focus {
+  border-color: #10b981;
+}
+
+.schedule-days-row {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 0.4rem 0;
+}
+
+.day-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: rgba(255,255,255,0.08);
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.day-btn.active {
+  background: #10b981;
+  color: #fff;
+}
+
+.active-schedules-list {
+  flex: 1 1 280px;
+}
+
+.schedule-item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.7rem 1rem;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 0.5rem;
+  transition: all 0.2s;
+}
+
+.schedule-item-row.enabled {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.toggle-switch-btn {
+  width: 38px;
+  height: 22px;
+  border-radius: 11px;
+  border: none;
+  cursor: pointer;
+  background: #475569;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle-switch-btn.active {
+  background: #10b981;
+}
+
+.toggle-switch-dot {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.2s;
+}
+
+.toggle-switch-btn.active .toggle-switch-dot {
+  left: 19px;
+}
+
+.schedule-info-pane {
+  flex: 1;
+  min-width: 0;
+}
+
+.schedule-info-name {
+  color: #e2e8f0;
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.schedule-info-details {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  margin-top: 0.2rem;
+}
+
+.btn-delete-schedule {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0.4rem;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.btn-delete-schedule:hover {
+  transform: scale(1.15);
+}
+
+/* Toast spf alerts */
+.toast-spf {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #d1fae5;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  z-index: 1100;
+  font-weight: 600;
+  font-size: 0.9rem;
+  backdrop-filter: blur(8px);
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Server grouping borders */
+.spf-table tbody tr.server-group-inner td:not(.server-cell) {
+  border-bottom: none;
+}
+
+.spf-table tbody tr.server-group-end td {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+}

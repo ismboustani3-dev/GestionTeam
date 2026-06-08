@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { loadTeamsFromFirebase, saveTeamsToFirebase, loadIpStatusFromFirebase, saveIpStatusToFirebase, addMonitorLogToFirebase } from '@/lib/firebaseTeams';
+import { getUniqueIpDomains } from '@/lib/ipUtils';
 import './Database.css';
 
 interface Server {
@@ -12,7 +15,8 @@ interface Server {
   dateEntre: string;
   dateSortie: string;
   nbrIps: number;
-  status?: 'active' | 'deleted';
+  classType?: string;
+  status?: 'active' | 'deleted' | 'tocancel';
   dateDeclaration?: string;
   ipDomains?: { ip: string, domain: string }[];
 }
@@ -49,7 +53,8 @@ function getNoticeColorClass(dateStr: string): string {
   const diffTime = d.getTime() - now.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
-  if (diffDays >= 1 && diffDays <= 3) return 'urgent';
+  if (diffDays < -2) return 'kept'; // New class for grey
+  if (diffDays >= -2 && diffDays <= 3) return 'urgent';
   if (diffDays >= 4 && diffDays <= 7) return 'warning';
   return 'normal';
 }
@@ -84,32 +89,201 @@ interface Team {
   servers: Server[];
 }
 
+interface ScheduleItem {
+  id: string;
+  name: string;
+  type: string;
+  cronExpression: string;
+  enabled: boolean;
+  lastRun?: string;
+  teamName?: string;
+}
+
 export default function DatabasePage() {
-  const [teams, setTeams] = useState<Team[]>([
-    { name: 'REDA', servers: [] },
-    { name: 'AMINE', servers: [] },
-  ]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from localStorage on initial mount
+  // Load from Firebase on initial mount
   useEffect(() => {
-    const saved = localStorage.getItem('gestiq_teams_data');
-    if (saved) {
-      try {
-        setTeams(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to load saved data");
+    const load = async () => {
+      const data = await loadTeamsFromFirebase();
+      if (data && data.length > 0) {
+        setTeams(data);
       }
-    }
-    setIsLoaded(true);
+      setIsLoaded(true);
+    };
+    load();
   }, []);
 
-  // Save to localStorage whenever teams change
+  // Save to Firebase whenever teams change
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem('gestiq_teams_data', JSON.stringify(teams));
+      saveTeamsToFirebase(teams);
     }
   }, [teams, isLoaded]);
+
+  // Schedule state
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
+  const [newScheduleName, setNewScheduleName] = useState('');
+  const [newScheduleType, setNewScheduleType] = useState('payment_notice');
+  const [newScheduleProvider, setNewScheduleProvider] = useState('');
+  const [newScheduleAge, setNewScheduleAge] = useState('60');
+  const [newScheduleFrequency, setNewScheduleFrequency] = useState<'time' | '1h' | '2h' | '6h' | '12h'>('time');
+  const [newScheduleTime1, setNewScheduleTime1] = useState('08:00');
+  const [newScheduleTime2, setNewScheduleTime2] = useState('');
+  const [newScheduleTeam, setNewScheduleTeam] = useState('all');
+  const [newScheduleDays, setNewScheduleDays] = useState<number[]>([1,2,3,4,5,6,0]);
+  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
+
+  // Load schedules on mount
+  useEffect(() => {
+    fetch('/api/schedule').then(r => r.json()).then(data => {
+      if (data.schedules) setSchedules(data.schedules);
+    }).catch(() => {});
+  }, []);
+
+
+  const handleAddSchedule = async () => {
+    if (newScheduleFrequency === 'time' && !newScheduleTime1) return;
+    if (newScheduleDays.length === 0) {
+      alert('Please select at least one day.');
+      return;
+    }
+
+    const dayStr = newScheduleDays.length === 7 ? '*' : newScheduleDays.join(',');
+    
+    if (newScheduleFrequency !== 'time') {
+      let interval = 1;
+      if (newScheduleFrequency === '2h') interval = 2;
+      if (newScheduleFrequency === '6h') interval = 6;
+      if (newScheduleFrequency === '12h') interval = 12;
+      
+      const cronExpr = interval === 1 ? `0 * * * ${dayStr}` : `0 */${interval} * * ${dayStr}`;
+      const name = newScheduleName || `Auto Check (Every ${interval}h)`;
+
+      let finalType = newScheduleType;
+      if (newScheduleType === 'by_provider') finalType = `by_provider_${newScheduleProvider}`;
+      if (newScheduleType === 'old_age') finalType = `old_age_${newScheduleAge}`;
+
+      const res = await fetch('/api/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add', name, type: finalType, cronExpression: cronExpr, teamName: newScheduleTeam })
+      });
+      const data = await res.json();
+      if (data.schedules) setSchedules(data.schedules);
+    } else {
+      const [h1, m1] = newScheduleTime1.split(':');
+      let cronExpr = `${parseInt(m1)} ${parseInt(h1)} * * ${dayStr}`;
+      const name = newScheduleName || `Auto Check ${newScheduleTime1}`;
+
+      let finalType = newScheduleType;
+      if (newScheduleType === 'by_provider') finalType = `by_provider_${newScheduleProvider}`;
+      if (newScheduleType === 'old_age') finalType = `old_age_${newScheduleAge}`;
+
+      if (newScheduleTime2) {
+        const [h2, m2] = newScheduleTime2.split(':');
+        await fetch('/api/schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'add', name: `${name} (1)`, type: finalType, cronExpression: `${parseInt(m1)} ${parseInt(h1)} * * ${dayStr}`, teamName: newScheduleTeam })
+        });
+        const res2 = await fetch('/api/schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'add', name: `${name} (2)`, type: finalType, cronExpression: `${parseInt(m2)} ${parseInt(h2)} * * ${dayStr}`, teamName: newScheduleTeam })
+        });
+        const data = await res2.json();
+        if (data.schedules) setSchedules(data.schedules);
+      } else {
+        const res = await fetch('/api/schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'add', name, type: finalType, cronExpression: cronExpr, teamName: newScheduleTeam })
+        });
+        const data = await res.json();
+        if (data.schedules) setSchedules(data.schedules);
+      }
+    }
+
+    setNewScheduleName('');
+    setNewScheduleTime1('08:00');
+    setNewScheduleTime2('');
+    setNewScheduleTeam('all');
+    setNewScheduleFrequency('time');
+    setNewScheduleProvider('');
+    setNewScheduleAge('60');
+    setNewScheduleDays([1,2,3,4,5,6,0]);
+    setEditingScheduleId(null);
+  };
+
+  const handleUpdateSchedule = async () => {
+    if (!editingScheduleId) return;
+    // Delete old then add new
+    await fetch('/api/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', id: editingScheduleId })
+    });
+    await handleAddSchedule();
+  };
+
+  const handleToggleSchedule = async (id: string, enabled: boolean) => {
+    const res = await fetch('/api/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'toggle', id, enabled })
+    });
+    const data = await res.json();
+    if (data.schedules) setSchedules(data.schedules);
+  };
+
+  const handleDeleteSchedule = async (id: string) => {
+    const res = await fetch('/api/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', id })
+    });
+    const data = await res.json();
+    if (data.schedules) setSchedules(data.schedules);
+  };
+
+  // Load an existing schedule into the form for editing
+  const handleEditSchedule = (s: ScheduleItem) => {
+    setEditingScheduleId(s.id);
+    setNewScheduleName(s.name);
+    setNewScheduleTeam(s.teamName || 'all');
+
+    // Parse type
+    if (s.type.startsWith('old_age_')) {
+      setNewScheduleType('old_age');
+      setNewScheduleAge(s.type.replace('old_age_', ''));
+    } else if (s.type.startsWith('by_provider_')) {
+      setNewScheduleType('by_provider');
+      setNewScheduleProvider(s.type.replace('by_provider_', ''));
+    } else {
+      setNewScheduleType(s.type);
+    }
+
+    // Parse cron expression to time/days
+    const parts = s.cronExpression.split(' ');
+    if (parts.length === 5) {
+      const [min, hour, , , dow] = parts;
+      if (hour.startsWith('*/')) {
+        const interval = parseInt(hour.replace('*/', ''));
+        setNewScheduleFrequency(interval === 1 ? '1h' : interval === 2 ? '2h' : interval === 6 ? '6h' : '12h');
+      } else {
+        setNewScheduleFrequency('time');
+        setNewScheduleTime1(`${hour.padStart(2,'0')}:${min.padStart(2,'0')}`);
+        setNewScheduleTime2('');
+      }
+      const days = dow === '*' ? [1,2,3,4,5,6,0] : dow.split(',').map(Number);
+      setNewScheduleDays(days);
+    }
+
+    setIsScheduleModalOpen(true);
+  };
 
   const [activeTeam, setActiveTeam] = useState<string>('REDA');
   const [searchTerm, setSearchTerm] = useState('');
@@ -257,7 +431,11 @@ export default function DatabasePage() {
           : t
       )
     );
-
+    if (editingServerId) {
+      addMonitorLogToFirebase("Edit Server", `Edited server: ${serverData.serverName} (IP: ${serverData.mainIp}, Provider: ${serverData.provider || 'N/A'}, ASN: ${serverData.asn || 'N/A'}, DateEntre: ${serverData.dateEntre}) in team ${activeTeam}`);
+    } else {
+      addMonitorLogToFirebase("Add Server", `new server add: Added new server ${serverData.serverName} (IP: ${serverData.mainIp}, Provider: ${serverData.provider || 'N/A'}, ASN: ${serverData.asn || 'N/A'}, DateEntre: ${serverData.dateEntre}) in team ${activeTeam}`);
+    }
     setFormData({ serverName: '', mainIp: '', provider: '', asn: '', dateEntre: '', dateSortie: '', nbrIps: '', classType: '' });
     setShowForm(false);
     setEditingServerId(null);
@@ -341,6 +519,7 @@ export default function DatabasePage() {
             : t
         )
       );
+      addMonitorLogToFirebase("Bulk Import", `new server add: Bulk imported ${newServers.length} server(s) into team ${activeTeam}:\n` + newServers.map(s => `- ${s.serverName} (${s.mainIp})`).join('\n'));
       setBulkText('');
       setShowBulk(false);
     }
@@ -369,7 +548,7 @@ export default function DatabasePage() {
               ...t,
               servers: t.servers.map(s => {
                 if (serverNamesToCancel.includes(s.serverName.toLowerCase())) {
-                  return { ...s, status: 'deleted', dateSortie: todayFormatted, dateDeclaration: todayFormatted };
+                  return { ...s, status: 'tocancel', dateSortie: todayFormatted, dateDeclaration: todayFormatted };
                 }
                 return s;
               })
@@ -377,7 +556,7 @@ export default function DatabasePage() {
           : t
       )
     );
-
+    addMonitorLogToFirebase("Bulk Cancel", `Bulk cancelled (Marked To Cancel) servers in team ${activeTeam}: ${serverNamesToCancel.join(', ')}`);
     setBulkCancelText('');
     setShowBulkCancel(false);
   };
@@ -385,6 +564,7 @@ export default function DatabasePage() {
   const handleBulkIpDomain = () => {
     const lines = bulkIpDomainText.trim().split('\n').filter(l => l.trim());
     const updates = new Map<string, {ip: string, domain: string}[]>();
+    const allUpdatedIps = new Set<string>();
     
     for (const line of lines) {
       const parts = line.split(':');
@@ -396,28 +576,84 @@ export default function DatabasePage() {
           updates.set(serverName, []);
         }
         updates.get(serverName)!.push({ip, domain});
+        allUpdatedIps.add(ip);
       }
     }
 
-    setTeams(prev => prev.map(t => {
+    // Compute updated teams
+    const updatedTeams = teams.map((t: any) => {
       if (t.name === activeTeam) {
         return {
           ...t,
-          servers: t.servers.map(s => {
+          servers: t.servers.map((s: any) => {
             const sname = s.serverName.toLowerCase();
             if (updates.has(sname)) {
-              const currentDomains = s.ipDomains || [];
-              const newMappings = [...currentDomains, ...updates.get(sname)!];
+              const currentDomains: {ip: string, domain: string}[] = s.ipDomains || [];
+              
+              // Build a map of old unique domains for change detection
+              const oldUnique = getUniqueIpDomains(currentDomains);
+              const oldDomainMap = new Map(oldUnique.map(d => [d.ip.trim(), d.domain.trim()]));
+              
+              const changedIps = new Set<string>();
+              const changedOldDomains = new Set<string>();
+              
+              // Build a set of IPs being updated and detect changes
+              const updateMap = new Map<string, string>();
+              for (const mapping of updates.get(sname)!) {
+                const ip = mapping.ip.trim();
+                const newDomain = mapping.domain.trim();
+                updateMap.set(ip, newDomain);
+                const oldDomain = oldDomainMap.get(ip);
+                if (oldDomain && oldDomain !== newDomain) {
+                  changedIps.add(ip);
+                  changedOldDomains.add(oldDomain);
+                }
+              }
+
+              // Replace domains: filter out ALL old entries for updated IPs, then add new ones
+              const cleanedDomains = currentDomains.filter(m => !updateMap.has(m.ip.trim()));
+              const newMappings = [...cleanedDomains, ...updates.get(sname)!];
               
               const allIps = new Set(newMappings.map(m => m.ip));
               if (s.mainIp) allIps.add(s.mainIp);
               const totalIpsCount = allIps.size;
 
+              // Clear stale check results for IPs whose domain changed
+              let newSpfDetails = s.spfDetails ? { ...s.spfDetails } : undefined;
+              let newVmtaDetails = s.vmtaDetails ? { ...s.vmtaDetails } : undefined;
+              let newRdnsDetails = s.rdnsDetails ? [...s.rdnsDetails] : undefined;
+
+              if (changedIps.size > 0) {
+                // Clear SPF results for changed IPs
+                if (newSpfDetails) {
+                  changedIps.forEach(ip => {
+                    delete newSpfDetails![ip];
+                  });
+                }
+                // Clear VMTA results for changed IPs
+                if (newVmtaDetails) {
+                  changedIps.forEach(ip => {
+                    delete newVmtaDetails![ip];
+                  });
+                }
+                // Clear rDNS results: remove PTR queries for changed IPs and A queries for old domains
+                if (newRdnsDetails) {
+                  newRdnsDetails = newRdnsDetails.filter((q: any) => {
+                    if (q.type === 'PTR' && changedIps.has(q.query)) return false;
+                    if (q.type === 'A' && changedOldDomains.has(q.query)) return false;
+                    return true;
+                  });
+                }
+              }
+
               return { 
                 ...s, 
                 ipDomains: newMappings,
                 nbrIps: totalIpsCount,
-                classType: getClassFromIps(totalIpsCount)
+                classType: getClassFromIps(totalIpsCount),
+                ...(newSpfDetails !== undefined && { spfDetails: newSpfDetails }),
+                ...(newVmtaDetails !== undefined && { vmtaDetails: newVmtaDetails }),
+                ...(newRdnsDetails !== undefined && { rdnsDetails: newRdnsDetails }),
               };
             }
             return s;
@@ -425,10 +661,81 @@ export default function DatabasePage() {
         };
       }
       return t;
-    }));
+    });
 
+    // Update state AND explicitly save to Firebase (don't rely on useEffect alone)
+    setTeams(updatedTeams);
+    saveTeamsToFirebase(updatedTeams);
+
+    // Update IP Status tracker to 'Change DOM' for all updated IPs for today
+    if (allUpdatedIps.size > 0) {
+      loadIpStatusFromFirebase().then(ipHistory => {
+        const history = ipHistory || {};
+        const today = new Date().toISOString().split('T')[0];
+        let changed = false;
+        allUpdatedIps.forEach(ip => {
+          if (!history[ip]) history[ip] = {};
+          if (history[ip][today] !== 'Change DOM') {
+            history[ip][today] = 'Change DOM';
+            changed = true;
+          }
+        });
+        if (changed) {
+          saveIpStatusToFirebase(history);
+        }
+      }).catch(err => console.error('Failed to update ip status history on mapping:', err));
+    }
+
+    addMonitorLogToFirebase("Map IPs & Domains", `Change domain New: Mapped IPs & domains in team ${activeTeam}:\n` + lines.join('\n'));
     setBulkIpDomainText('');
     setShowBulkIpDomain(false);
+  };
+
+  const handleMarkToCancel = (serverId: number) => {
+    const server = currentTeam?.servers.find(s => s.id === serverId);
+    let ds = server?.dateSortie;
+    if (!ds) {
+      const promptDate = window.prompt("Enter Notice Date (DD/MM/YYYY) for cancellation:");
+      if (!promptDate) return;
+      ds = promptDate;
+    }
+
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    const todayFormatted = `${dd}/${mm}/${yyyy}`;
+
+    setTeams(prev =>
+      prev.map(t =>
+        t.name === activeTeam
+          ? {
+              ...t,
+              servers: t.servers.map(s => s.id === serverId ? { ...s, status: 'tocancel', dateSortie: ds as string, dateDeclaration: todayFormatted } : s)
+            }
+          : t
+      )
+    );
+    if (server) {
+      addMonitorLogToFirebase("Mark To Cancel", `Marked server ${server.serverName} (${server.mainIp}) as To Cancel (Notice Date: ${ds}) in team ${activeTeam}`);
+    }
+  };
+
+  const handleKeepServer = (serverId: number) => {
+    const server = currentTeam?.servers.find(s => s.id === serverId);
+    setTeams(prev =>
+      prev.map(t =>
+        t.name === activeTeam
+          ? {
+              ...t,
+              servers: t.servers.map(s => s.id === serverId ? { ...s, status: 'active', dateSortie: '', dateDeclaration: '' } : s)
+            }
+          : t
+      )
+    );
+    if (server) {
+      addMonitorLogToFirebase("Keep Server", `Restored server ${server.serverName} (${server.mainIp}) to Active status in team ${activeTeam}`);
+    }
   };
 
   const handleDeleteToHistory = (serverId: number) => {
@@ -459,10 +766,14 @@ export default function DatabasePage() {
           : t
       )
     );
+    if (serverToDel) {
+      addMonitorLogToFirebase("Delete Server", `Moved server ${serverToDel.serverName} (${serverToDel.mainIp}) to history (Date Sortie: ${ds}) in team ${activeTeam}`);
+    }
   };
 
   const handlePermanentDelete = (serverId: number) => {
     if(!window.confirm("Are you sure you want to permanently erase this server?")) return;
+    const serverToDel = currentTeam?.servers.find(s => s.id === serverId);
     setTeams(prev =>
       prev.map(t =>
         t.name === activeTeam
@@ -470,6 +781,9 @@ export default function DatabasePage() {
           : t
       )
     );
+    if (serverToDel) {
+      addMonitorLogToFirebase("Permanent Delete", `Permanently erased server ${serverToDel.serverName} (${serverToDel.mainIp}) from team ${activeTeam}`);
+    }
   };
 
   const handleClearAllHistory = () => {
@@ -481,6 +795,7 @@ export default function DatabasePage() {
           : t
       )
     );
+    addMonitorLogToFirebase("Clear History", `Cleared all deleted server history for team ${activeTeam}`);
   };
 
   // Group deleted history by month
@@ -496,6 +811,10 @@ export default function DatabasePage() {
     const db = new Date(b);
     return (isNaN(db.getTime()) ? 0 : db.getTime()) - (isNaN(da.getTime()) ? 0 : da.getTime()); // Newest first
   });
+
+  const databaseSchedules = schedules.filter(s => 
+    s.type === 'payment_notice' || s.type.startsWith('by_provider_') || s.type.startsWith('old_age_')
+  );
 
   return (
     <div className="database-page animate-fade-in">
@@ -528,7 +847,15 @@ export default function DatabasePage() {
       </header>
 
       <div className="db-toolbar">
-        <div className="db-toolbar-left"></div>
+        <div className="db-toolbar-left">
+          <Link 
+            href="/database/monitor" 
+            className="bulk-import-btn" 
+            style={{background: 'linear-gradient(135deg, #6366f1, #4f46e5)', margin: 0, textDecoration: 'none', display: 'inline-flex', alignItems: 'center'}}
+          >
+            🖥️ Monitor
+          </Link>
+        </div>
         <div className="db-toolbar-right">
           <div className="db-filter">
             <select
@@ -573,8 +900,237 @@ export default function DatabasePage() {
           <button className="bulk-import-btn" style={{background: 'linear-gradient(135deg, #10b981, #3b82f6)'}} onClick={() => { setShowBulkIpDomain(!showBulkIpDomain); setShowForm(false); setShowBulk(false); setShowBulkCancel(false); }}>
             {showBulkIpDomain ? '✕ Cancel' : '🌐 Map IPs & Domains'}
           </button>
+          <button className="bulk-import-btn" style={{background: 'linear-gradient(135deg, #f59e0b, #ef4444)', marginLeft: '0.5rem'}} onClick={async () => {
+            const btn = document.getElementById('manual-notice-btn');
+            if (btn) btn.innerText = 'Sending...';
+            try {
+              await fetch('/api/cron-check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'payment_notice', teamName: 'all' })
+              });
+              alert('Payment Notice sent to Telegram!');
+            } catch (e) {
+              alert('Error sending notice.');
+            }
+            if (btn) btn.innerText = '🤖 Send Notice (All)';
+          }} id="manual-notice-btn">
+            🤖 Send Notice (All)
+          </button>
+          <button 
+            className="bulk-import-btn" 
+            style={{background: 'linear-gradient(135deg, #10b981, #059669)', marginLeft: '0.5rem'}}
+            onClick={() => {
+              setIsScheduleModalOpen(!isScheduleModalOpen);
+              setShowForm(false);
+              setShowBulk(false);
+              setShowBulkCancel(false);
+              setShowBulkIpDomain(false);
+            }}
+          >
+            ⏰ Auto Schedule
+          </button>
         </div>
       </div>
+
+      {isScheduleModalOpen && (
+        <div className="animate-fade-in" style={{
+          background: 'rgba(16, 185, 129, 0.04)',
+          border: '1px solid rgba(16, 185, 129, 0.15)',
+          borderRadius: '12px',
+          padding: '1.2rem',
+          marginBottom: '1rem',
+          display: 'flex', gap: '1.5rem', flexWrap: 'wrap'
+        }}>
+          {/* New Schedule Form */}
+          <div style={{ flex: '1 1 280px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '1.2rem', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <p style={{ margin: '0 0 1rem', color: '#10b981', fontWeight: 600, fontSize: '1.1rem' }}>➕ New Schedule</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+              <input
+                type="text"
+                placeholder="Schedule Name"
+                value={newScheduleName}
+                onChange={e => setNewScheduleName(e.target.value)}
+                style={{ padding: '0.6rem 0.8rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e8f0', fontSize: '1rem' }}
+              />
+              <select
+                value={newScheduleType}
+                onChange={e => setNewScheduleType(e.target.value)}
+                style={{ padding: '0.6rem 0.8rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e8f0', fontSize: '1rem' }}
+              >
+                <option value="payment_notice" style={{ background: '#1e293b' }}>Payment Notice</option>
+                <option value="old_age" style={{ background: '#1e293b' }}>Old Age Server Notice</option>
+                <option value="by_provider" style={{ background: '#1e293b' }}>By Provider Notice</option>
+              </select>
+              {newScheduleType === 'old_age' && (
+                <input
+                  type="number"
+                  placeholder="Minimum Age (Days) e.g., 20"
+                  value={newScheduleAge}
+                  onChange={e => setNewScheduleAge(e.target.value)}
+                  style={{ gridColumn: '1 / -1', padding: '0.6rem 0.8rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e8f0', fontSize: '1rem' }}
+                />
+              )}
+              {newScheduleType === 'by_provider' && (
+                <input
+                  type="text"
+                  placeholder="Provider Name (e.g., OVH)"
+                  value={newScheduleProvider}
+                  onChange={e => setNewScheduleProvider(e.target.value)}
+                  style={{ gridColumn: '1 / -1', padding: '0.6rem 0.8rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e8f0', fontSize: '1rem' }}
+                />
+              )}
+              <select
+                value={newScheduleFrequency}
+                onChange={e => setNewScheduleFrequency(e.target.value as any)}
+                style={{ padding: '0.6rem 0.8rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e8f0', fontSize: '1rem' }}
+              >
+                <option value="time" style={{ background: '#1e293b' }}>Specific Times</option>
+                <option value="1h" style={{ background: '#1e293b' }}>Every 1 Hour</option>
+                <option value="2h" style={{ background: '#1e293b' }}>Every 2 Hours</option>
+                <option value="6h" style={{ background: '#1e293b' }}>Every 6 Hours</option>
+                <option value="12h" style={{ background: '#1e293b' }}>Every 12 Hours</option>
+              </select>
+              <select
+                value={newScheduleTeam}
+                onChange={e => setNewScheduleTeam(e.target.value)}
+                style={{ padding: '0.6rem 0.8rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e8f0', fontSize: '1rem' }}
+              >
+                <option value="all" style={{ background: '#1e293b' }}>All Teams</option>
+                {teams.map(t => <option key={t.name} value={t.name} style={{ background: '#1e293b' }}>{t.name}</option>)}
+              </select>
+              {newScheduleFrequency === 'time' && (
+                <div style={{ display: 'flex', gap: '0.5rem', gridColumn: '1 / -1' }}>
+                  <input 
+                    type="time"
+                    value={newScheduleTime1}
+                    onChange={e => setNewScheduleTime1(e.target.value)}
+                    style={{ flex: 1, padding: '0.6rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e8f0', fontSize: '1rem' }}
+                  />
+                  <input 
+                    type="time"
+                    value={newScheduleTime2}
+                    onChange={e => setNewScheduleTime2(e.target.value)}
+                    style={{ flex: 1, padding: '0.6rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e8f0', fontSize: '1rem' }}
+                  />
+                </div>
+              )}
+              
+              <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '0.5rem', justifyContent: 'center', margin: '0.4rem 0' }}>
+                {[{l:'M',v:1}, {l:'T',v:2}, {l:'W',v:3}, {l:'T',v:4}, {l:'F',v:5}, {l:'S',v:6}, {l:'S',v:0}].map((day, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      if (newScheduleDays.includes(day.v)) {
+                        setNewScheduleDays(newScheduleDays.filter(d => d !== day.v));
+                      } else {
+                        setNewScheduleDays([...newScheduleDays, day.v].sort());
+                      }
+                    }}
+                    style={{
+                      width: '36px', height: '36px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                      background: newScheduleDays.includes(day.v) ? '#10b981' : 'rgba(255,255,255,0.08)',
+                      color: newScheduleDays.includes(day.v) ? '#fff' : '#94a3b8',
+                      fontWeight: '600', fontSize: '0.95rem',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {day.l}
+                  </button>
+                ))}
+              </div>
+
+              <button 
+                style={{ 
+                  background: editingScheduleId ? '#f59e0b' : '#10b981', 
+                  padding: '0.7rem', gridColumn: '1 / -1', fontSize: '1.05rem', fontWeight: 600, 
+                  border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer' 
+                }}
+                onClick={editingScheduleId ? handleUpdateSchedule : handleAddSchedule}
+              >
+                {editingScheduleId ? '💾 Update Schedule' : 'Add Schedule'}
+              </button>
+              {editingScheduleId && (
+                <button
+                  style={{ padding: '0.5rem', gridColumn: '1 / -1', fontSize: '0.95rem', fontWeight: 500, border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#94a3b8', cursor: 'pointer', background: 'transparent' }}
+                  onClick={() => {
+                    setEditingScheduleId(null);
+                    setNewScheduleName('');
+                    setNewScheduleTime1('08:00');
+                    setNewScheduleTime2('');
+                    setNewScheduleTeam('all');
+                    setNewScheduleFrequency('time');
+                    setNewScheduleProvider('');
+                    setNewScheduleAge('60');
+                    setNewScheduleDays([1,2,3,4,5,6,0]);
+                  }}
+                >
+                  ✕ Cancel Edit
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Existing Schedules */}
+          <div style={{ flex: '1 1 280px' }}>
+            <p style={{ margin: '0 0 0.8rem', color: '#10b981', fontWeight: 600, fontSize: '1.1rem' }}>📋 Active Schedules</p>
+            {databaseSchedules.length === 0 ? (
+              <p style={{ color: '#64748b', fontSize: '1rem', textAlign: 'center', padding: '1rem' }}>No schedules configured yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {databaseSchedules.map(s => (
+                  <div key={s.id} style={{
+                    display: 'flex', alignItems: 'center', gap: '0.8rem',
+                    padding: '0.7rem 1rem', borderRadius: '8px',
+                    background: s.enabled ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${s.enabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.06)'}`,
+                  }}>
+                    <button
+                      onClick={() => handleToggleSchedule(s.id, !s.enabled)}
+                      style={{
+                        width: '38px', height: '22px', borderRadius: '11px', border: 'none', cursor: 'pointer',
+                        background: s.enabled ? '#10b981' : '#475569',
+                        position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute', top: '3px',
+                        left: s.enabled ? '19px' : '3px',
+                        width: '16px', height: '16px', borderRadius: '50%',
+                        background: '#fff', transition: 'left 0.2s',
+                      }} />
+                    </button>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: '#e2e8f0', fontSize: '1.05rem', fontWeight: 500 }}>{s.name}</div>
+                      <div style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '0.2rem' }}>
+                        {s.type.toUpperCase()} • {s.cronExpression} • Team: {s.teamName || 'all'}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleEditSchedule(s)}
+                      style={{ background: 'none', border: 'none', color: '#f59e0b', cursor: 'pointer', fontSize: '1.1rem', padding: '0.4rem', flexShrink: 0 }}
+                      title="Edit Schedule"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={() => handleDeleteSchedule(s.id)}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.2rem', padding: '0.4rem', flexShrink: 0 }}
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+
+
+
 
       {/* Bulk Import */}
       {showBulk && (
@@ -790,8 +1346,13 @@ export default function DatabasePage() {
             <tbody>
               {sortedServers.length > 0 ? (
                 sortedServers.map((s) => (
-                  <tr key={s.id}>
-                    <td className="td-name">{s.serverName || '—'}</td>
+                  <tr key={s.id} style={s.status === 'tocancel' ? { background: 'rgba(249, 115, 22, 0.08)' } : undefined}>
+                    <td className="td-name">
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ color: s.status === 'tocancel' ? '#f97316' : undefined, fontWeight: 600 }}>{s.serverName || '—'}</span>
+                        {s.status === 'tocancel' && <span style={{ fontSize: '0.75rem', color: '#f97316', fontWeight: 'bold' }}>tocancel</span>}
+                      </div>
+                    </td>
                     <td className="td-ip">{s.mainIp}</td>
                     <td className="td-date">{s.dateEntre}</td>
                     <td className="td-date" style={{ color: '#94a3b8' }}>{getServerAge(s.dateEntre)}</td>
@@ -803,9 +1364,19 @@ export default function DatabasePage() {
                       )}
                     </td>
                     <td style={{textAlign: 'right'}}>
-                      <div className="action-buttons-right">
-                        <button className="minimal-btn" title="Edit" onClick={() => handleEditClick(s)}>Edit</button>
-                        <button className="minimal-btn danger" title="Delete to History" onClick={() => handleDeleteToHistory(s.id)}>Del</button>
+                      <div className="action-buttons-right" style={{ gap: '0.4rem' }}>
+                        {s.status === 'tocancel' ? (
+                          <>
+                            <button className="minimal-btn" style={{ borderColor: '#22c55e', color: '#22c55e' }} title="Keep Server" onClick={() => handleKeepServer(s.id)}>Keep</button>
+                            <button className="minimal-btn danger" title="Delete Total" onClick={() => handleDeleteToHistory(s.id)}>Del Total</button>
+                          </>
+                        ) : (
+                          <>
+                            <button className="minimal-btn" title="Edit" onClick={() => handleEditClick(s)}>Edit</button>
+                            <button className="minimal-btn" style={{ borderColor: '#f97316', color: '#f97316' }} title="Mark To Cancel" onClick={() => handleMarkToCancel(s.id)}>To Cancel</button>
+                            <button className="minimal-btn danger" title="Delete Total" onClick={() => handleDeleteToHistory(s.id)}>Del Total</button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

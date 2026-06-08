@@ -1,0 +1,20 @@
+[
+  {
+    "lastRun": "2026-06-08T08:00:00.312Z",
+    "cronExpression": "00 09 * * *",
+    "enabled": true,
+    "name": "check blacklist",
+    "teamName": "all",
+    "id": "sched_1780508038697",
+    "type": "blacklist_both"
+  },
+  {
+    "teamName": "all",
+    "id": "sched_payment_notice",
+    "type": "payment_notice",
+    "cronExpression": "0 10 * * *",
+    "enabled": true,
+    "name": "Daily Payment Notice",
+    "lastRun": "2026-06-08T09:00:00.472Z"
+  }
+]

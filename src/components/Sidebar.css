@@ -115,3 +115,72 @@
   opacity: 1;
   transform: scale(1.1);
 }
+
+.tools-header:hover {
+  color: var(--text-primary);
+}
+
+.sub-item {
+  padding-left: 2rem !important;
+  font-size: 0.88rem !important;
+  color: rgba(255, 255, 255, 0.6);
+  background: transparent;
+  border-color: transparent;
+}
+
+.sub-item:hover {
+  color: #fff !important;
+  background: var(--glass-hover) !important;
+  transform: translateX(4px);
+}
+
+.sub-item.active {
+  color: #38bdf8 !important;
+  font-weight: 600;
+  background: rgba(56, 189, 248, 0.05) !important;
+  border-color: rgba(56, 189, 248, 0.2) !important;
+}
+
+.sub-item.active::before {
+  display: none !important; /* Hide vertical active indicator for sub-items */
+}
+
+.sub-item .bullet {
+  margin-right: 0.5rem;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.3s ease;
+}
+
+.sub-item:hover .bullet {
+  color: #38bdf8;
+}
+
+.sub-item.active .bullet {
+  color: #38bdf8;
+}
+
+/* Sidebar Font Scale Control */
+.font-control-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 2rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: auto;
+  user-select: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.font-control-toggle:hover {
+  color: var(--text-primary);
+}
+
+.sidebar-font-control {
+  padding: 0 2rem 1.2rem 2rem;
+  flex: none;
+}

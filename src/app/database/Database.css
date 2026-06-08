@@ -767,6 +767,12 @@
   background: rgba(255, 255, 255, 0.05);
 }
 
+.notice-badge.kept {
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .notice-badge.warning {
   color: #f59e0b;
   background: rgba(245, 158, 11, 0.1);

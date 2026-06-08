@@ -28,6 +28,10 @@
   padding: 0;
 }
 
+html {
+  font-size: 18px; /* Scales up all rem-based sizes globally */
+}
+
 body {
   font-family: 'Outfit', sans-serif;
   background-color: var(--bg-main);
@@ -80,4 +84,10 @@ button {
 
 .animate-fade-in {
   animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Global Select Option Styling to fix white-on-white text readability in native dropdowns */
+select option {
+  background-color: #0b0f19;
+  color: #f8fafc;
 }

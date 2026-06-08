@@ -3,8 +3,16 @@
 import { useState } from 'react';
 import './Inventory.css';
 
+interface InventoryServer {
+  id: string;
+  dateEntre: string;
+  noticeDate: string;
+  isNoticeWarning: boolean;
+  isNoticeYellow?: boolean;
+}
+
 // Mock data based on the screenshot
-const initialRedaServers = [
+const initialRedaServers: InventoryServer[] = [
   { id: 's_wm3_2182', dateEntre: '10/03/2026', noticeDate: '03/06/2026', isNoticeWarning: false },
   { id: 's_wm3_2160', dateEntre: '26/02/2026', noticeDate: '17/05/2026', isNoticeWarning: true },
   { id: 's_wm3_2159', dateEntre: '26/02/2026', noticeDate: '19/05/2026', isNoticeWarning: true },
@@ -13,7 +21,7 @@ const initialRedaServers = [
   { id: 's_wm3_2214', dateEntre: '06/04/2026', noticeDate: '28/05/2026', isNoticeWarning: true },
 ];
 
-const initialAmineServers = [
+const initialAmineServers: InventoryServer[] = [
   { id: 's_wm3_2156', dateEntre: '24/02/2026', noticeDate: '17/05/2026', isNoticeWarning: true },
   { id: 's_wm3_2158', dateEntre: '26/02/2026', noticeDate: '18/06/2026', isNoticeWarning: false },
   { id: 's_wm3_2162', dateEntre: '27/02/2026', noticeDate: '20/05/2026', isNoticeWarning: true },

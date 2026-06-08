@@ -1,0 +1,518 @@
+.vmta-check-container {
+  padding: 1.5rem;
+  color: #e2e8f0;
+  width: 100%;
+  margin: 0;
+}
+
+.vmta-check-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.vmta-check-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.vmta-check-header p {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.back-link-vmta {
+  color: #f59e0b;
+  text-decoration: none;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.back-link-vmta:hover {
+  opacity: 0.8;
+}
+
+/* Team Switcher Tabs */
+.vmta-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.5rem;
+}
+
+.vmta-tab {
+  padding: 0.8rem 1.5rem;
+  font-weight: 600;
+  color: #94a3b8;
+  border-radius: 12px 12px 0 0;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.vmta-tab:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.vmta-tab.active {
+  color: #fff;
+  background: #f59e0b;
+  box-shadow: 0 -4px 15px rgba(245, 158, 11, 0.2);
+}
+
+.tab-count-badge {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.1rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.vmta-tab.active .tab-count-badge {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Filters & Actions row */
+.filters-actions-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.search-filters-pane {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.search-filters-pane input.search {
+  padding: 0.5rem 0.8rem;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  width: 250px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-filters-pane input.search:focus {
+  border-color: #f59e0b;
+}
+
+.filter-select-vmta {
+  padding: 0.5rem 0.8rem;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  outline: none;
+  cursor: pointer;
+  height: 38px;
+}
+
+.filter-select-vmta option {
+  background: #0f172a;
+  color: #fff;
+}
+
+/* General Button Styles */
+.btn-vmta-action {
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  outline: none;
+}
+
+.btn-vmta-action.primary {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+}
+
+.btn-vmta-action.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.25);
+  filter: brightness(1.1);
+}
+
+.btn-vmta-action.secondary {
+  background: rgba(15, 23, 42, 0.6);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-vmta-action.secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.btn-vmta-action.secondary.active {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+  color: #fff;
+}
+
+.btn-vmta-action.secondary-orange {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.btn-vmta-action.secondary-orange:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-vmta-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Schedules Grid Layout */
+.schedules-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 1.5rem;
+  color: #f8fafc;
+}
+
+.new-schedule-card {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.schedule-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 0.8rem;
+  letter-spacing: 0.5px;
+}
+
+.schedule-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.schedule-inputs input[type="text"],
+.schedule-inputs select,
+.schedule-inputs input[type="time"] {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+  color: #fff;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.schedule-inputs input[type="text"] {
+  grid-column: 1 / -1;
+}
+
+.schedule-days-row {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.3rem;
+  margin: 0.3rem 0;
+}
+
+.day-btn {
+  flex: 1;
+  padding: 0.3rem 0;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.day-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.day-btn.active {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
+.active-schedules-list {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 1rem;
+  max-height: 230px;
+  overflow-y: auto;
+}
+
+.schedule-item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  transition: border-color 0.2s;
+}
+
+.schedule-item-row.enabled {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.toggle-switch-btn {
+  width: 34px;
+  height: 18px;
+  border-radius: 10px;
+  background: #334155;
+  position: relative;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s;
+  padding: 0;
+  flex: none;
+}
+
+.toggle-switch-btn.active {
+  background: #f59e0b;
+}
+
+.toggle-switch-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s;
+}
+
+.toggle-switch-btn.active .toggle-switch-dot {
+  transform: translateX(16px);
+}
+
+.schedule-info-pane {
+  flex: 1;
+  min-width: 0;
+}
+
+.schedule-info-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.schedule-info-details {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.1rem;
+}
+
+.btn-delete-schedule {
+  color: #ef4444;
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.2rem;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.btn-delete-schedule:hover {
+  opacity: 1;
+}
+
+/* Progress Checking indicator */
+.progress-checking-container {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 8px;
+  padding: 0.8rem 1.2rem;
+  margin-bottom: 1.5rem;
+}
+
+.progress-checking-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f59e0b;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.5px;
+}
+
+.progress-checking-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-checking-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+  transition: width 0.3s ease;
+}
+
+/* Results Table Glassmorphic Panel */
+.vmta-table-container {
+  background: rgba(30, 41, 59, 0.3);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  overflow-x: auto;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.vmta-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.88rem;
+}
+
+.vmta-table th {
+  padding: 1rem 1.2rem;
+  font-weight: 600;
+  color: #94a3b8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  letter-spacing: 0.5px;
+}
+
+.vmta-table td {
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  vertical-align: middle;
+}
+
+.vmta-table tbody tr {
+  transition: background-color 0.2s;
+}
+
+.vmta-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Cells styling */
+.server-cell {
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.ip-cell {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.domain-cell {
+  color: #cbd5e1;
+}
+
+.date-cell {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+/* Status Badges */
+.badge-vmta {
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  display: inline-block;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.badge-vmta.ok {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-vmta.fail {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
+}
+
+.badge-vmta.pending {
+  background: rgba(100, 116, 139, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+/* Status Toast alerts */
+.toast-vmta {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid #f59e0b;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(245, 158, 11, 0.2);
+  color: #fff;
+  padding: 0.8rem 1.4rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+}
+
+/* Server grouping borders */
+.vmta-table tbody tr.server-group-inner td:not(.server-cell) {
+  border-bottom: none;
+}
+
+.vmta-table tbody tr.server-group-end td {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+}
