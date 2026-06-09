@@ -436,6 +436,18 @@ async function runBlacklistCheck(type: string, teamName: string) {
     const data = await response.json();
 
     if (data.results) {
+      // Load history data first for yesterday comparison
+      const DOC_REF = doc(db, 'appData', 'blacklist_history');
+      let historyData: any = {};
+      try {
+        const snap = await getDoc(DOC_REF);
+        if (snap.exists()) {
+          historyData = snap.data().history || {};
+        }
+      } catch (e) {
+        console.error('[CRON] Failed to load history from Firebase:', e);
+      }
+
       const teamStats: Record<string, { total: number, sbl: number, css: number, barra: number, dbl: number, clean: number }> = {};
       let globalTotal = 0;
       let globalClean = 0;
@@ -462,27 +474,140 @@ async function runBlacklistCheck(type: string, teamName: string) {
         }
       });
 
+      // Calculate Yesterday's Stats
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayKey = yesterday.toLocaleDateString('en-CA'); // reliable YYYY-MM-DD
+      const yesterdayData = historyData[yesterdayKey] || {};
+
+      const yesterdayTeamStats: Record<string, { total: number, sbl: number, css: number, barra: number, dbl: number, clean: number }> = {};
+      let yesterdayGlobalTotal = 0;
+      let yesterdayGlobalClean = 0;
+
+      Object.keys(yesterdayData).forEach(key => {
+        const entry = yesterdayData[key];
+        if (!entry) return;
+
+        const isIp = entry.ip && entry.ip !== '';
+        const isDomain = entry.domain && entry.domain !== 'No Domain';
+        
+        if (checkIps && !isIp) return;
+        if (checkDomains && !isDomain) return;
+
+        // Parse serverName and teamName robustly
+        let serverName = entry.serverName || '';
+        let teamName = entry.teamName || '';
+        
+        if (!serverName) {
+          if (key.includes('-')) {
+            const dashIdx = key.indexOf('-');
+            serverName = key.substring(0, dashIdx);
+          } else if (key.includes('_')) {
+            const parts = key.split('_');
+            const ipIndex = parts.findIndex(p => p.includes('.') || p === 'noip');
+            if (ipIndex > -1) {
+              serverName = parts.slice(0, ipIndex).join('_');
+            } else {
+              serverName = parts[0];
+            }
+          } else {
+            serverName = key;
+          }
+        }
+
+        if (!teamName) {
+          const foundTeam = teams.find(t => (t.servers || []).some((s: any) => s.serverName === serverName));
+          teamName = foundTeam ? foundTeam.name : 'Unknown';
+        }
+
+        if (!yesterdayTeamStats[teamName]) {
+          yesterdayTeamStats[teamName] = { total: 0, sbl: 0, css: 0, barra: 0, dbl: 0, clean: 0 };
+        }
+
+        // Check listings
+        let sbl = !!entry.sbl;
+        let css = !!entry.css;
+        let barra = !!entry.barracuda;
+        let dbl = !!entry.dbl;
+        
+        if (entry.activeLists && Array.isArray(entry.activeLists)) {
+          sbl = entry.activeLists.includes('SBL');
+          css = entry.activeLists.includes('CSS');
+          barra = entry.activeLists.includes('BARRA');
+          dbl = entry.activeLists.includes('DBL');
+        }
+
+        const isListed = entry.status === 'Listed' || sbl || css || barra || dbl;
+        const status = entry.status || (isListed ? 'Listed' : 'Clean');
+
+        yesterdayGlobalTotal++;
+        yesterdayTeamStats[teamName].total++;
+
+        if (status === 'Clean') {
+          yesterdayTeamStats[teamName].clean++;
+          yesterdayGlobalClean++;
+        } else if (status === 'Listed') {
+          if (sbl) yesterdayTeamStats[teamName].sbl++;
+          if (css) yesterdayTeamStats[teamName].css++;
+          if (barra) yesterdayTeamStats[teamName].barra++;
+          if (dbl) yesterdayTeamStats[teamName].dbl++;
+        }
+      });
+
+      // Format Monospace Table
+      const formatHeader = () => {
+        const paddedLabel = "".padEnd(22, ' ');
+        const paddedToday = "TODAY".padEnd(14, ' ');
+        return `${paddedLabel} ${paddedToday} YESTERDAY\n`;
+      };
+
+      const formatRow = (label: string, todayVal: string, yestVal: string) => {
+        const paddedLabel = label.padEnd(22, ' ');
+        const paddedToday = todayVal.padEnd(14, ' ');
+        return `${paddedLabel} ${paddedToday} ${yestVal}\n`;
+      };
+
+      const formatPercent = (val: number, total: number) => {
+        if (total === 0) return '0.00%';
+        return `${((val / total) * 100).toFixed(2)}%`;
+      };
+
+      const todayCleanPct = formatPercent(globalClean, globalTotal);
+      const todayListedPct = formatPercent(globalTotal - globalClean, globalTotal);
+      const yestCleanPct = formatPercent(yesterdayGlobalClean, yesterdayGlobalTotal);
+      const yestListedPct = formatPercent(yesterdayGlobalTotal - yesterdayGlobalClean, yesterdayGlobalTotal);
+
+      let tableContent = formatHeader();
+      tableContent += formatRow("Global Total Checked", String(globalTotal), String(yesterdayGlobalTotal));
+      tableContent += formatRow("Global Clean", `${globalClean} (${todayCleanPct})`, `${yesterdayGlobalClean} (${yestCleanPct})`);
+      tableContent += formatRow("Global Listed", `${globalTotal - globalClean} (${todayListedPct})`, `${yesterdayGlobalTotal - yesterdayGlobalClean} (${yestListedPct})`);
+      tableContent += "\n";
+
+      const allTeamsWithStats = Array.from(new Set([
+        ...Object.keys(teamStats),
+        ...Object.keys(yesterdayTeamStats)
+      ])).sort();
+
+      allTeamsWithStats.forEach(team => {
+        const tToday = teamStats[team] || { total: 0, sbl: 0, css: 0, barra: 0, dbl: 0, clean: 0 };
+        const tYest = yesterdayTeamStats[team] || { total: 0, sbl: 0, css: 0, barra: 0, dbl: 0, clean: 0 };
+        
+        tableContent += `[Team ${team}]\n`;
+        tableContent += formatRow("Total Checked", String(tToday.total), String(tYest.total));
+        tableContent += formatRow("Clean", String(tToday.clean), String(tYest.clean));
+        tableContent += formatRow("SBL", String(tToday.sbl), String(tYest.sbl));
+        tableContent += formatRow("CSS", String(tToday.css), String(tYest.css));
+        tableContent += formatRow("Barracuda", String(tToday.barra), String(tYest.barra));
+        if (checkDomains) {
+          tableContent += formatRow("DBL", String(tToday.dbl), String(tYest.dbl));
+        }
+        tableContent += "\n";
+      });
+
       const now = new Date().toLocaleString('en-US');
       const displayType = type.replace('blacklist_', '').toUpperCase();
-      const cleanPercentage = globalTotal > 0 ? ((globalClean / globalTotal) * 100).toFixed(2) : '0.00';
-      const listedPercentage = globalTotal > 0 ? (((globalTotal - globalClean) / globalTotal) * 100).toFixed(2) : '0.00';
-
       let finalMsg = `🤖 <b>AUTO BLACKLIST CHECK (${displayType})</b>\n📅 ${now}\n${'─'.repeat(30)}\n`;
-      finalMsg += `<b>Global Total Checked:</b> ${globalTotal}\n`;
-      finalMsg += `<b>Global Clean:</b> ${globalClean} (${cleanPercentage}%)\n`;
-      finalMsg += `<b>Global Listed:</b> ${globalTotal - globalClean} (${listedPercentage}%)\n\n`;
-
-      Object.keys(teamStats).forEach(team => {
-        const stats = teamStats[team];
-        finalMsg += `🏢 <b>Team ${team}</b>\n`;
-        finalMsg += `   Total Checked: <b>${stats.total}</b>\n`;
-        finalMsg += `   ✅ Clean: <b>${stats.clean}</b>\n`;
-        if (stats.sbl > 0) finalMsg += `   🔴 SBL: ${stats.sbl}\n`;
-        if (stats.css > 0) finalMsg += `   🟠 CSS: ${stats.css}\n`;
-        if (stats.barra > 0) finalMsg += `   🟣 Barracuda: ${stats.barra}\n`;
-        if (stats.dbl > 0) finalMsg += `   🟤 DBL: ${stats.dbl}\n`;
-        finalMsg += `\n`;
-      });
+      finalMsg += `<pre>${tableContent}</pre>\n`;
 
       // Save to History File automatically
       try {
@@ -532,13 +657,91 @@ async function runBlacklistCheck(type: string, teamName: string) {
         const newlyClean: string[] = [];
         const newlyListed: string[] = [];
 
+        const parsedYesterdayMap: Record<string, any> = {};
+        Object.keys(yesterdayData).forEach(key => {
+          const entry = yesterdayData[key];
+          if (!entry) return;
+          
+          let serverName = entry.serverName || '';
+          if (!serverName) {
+            if (key.includes('-')) {
+              const dashIdx = key.indexOf('-');
+              serverName = key.substring(0, dashIdx);
+            } else if (key.includes('_')) {
+              const parts = key.split('_');
+              const ipIndex = parts.findIndex(p => p.includes('.') || p === 'noip');
+              if (ipIndex > -1) {
+                serverName = parts.slice(0, ipIndex).join('_');
+              } else {
+                serverName = parts[0];
+              }
+            } else {
+              serverName = key;
+            }
+          }
+          
+          const ip = entry.ip || '';
+          const domain = entry.domain || '';
+          const identifier = `${serverName}_${checkIps ? ip : domain}`;
+          parsedYesterdayMap[identifier] = entry;
+        });
+
         Object.keys(todayData).forEach(key => {
           const todayEntry = todayData[key];
-          const yestEntry = yesterdayData[key];
+          let serverName = todayEntry.serverName || '';
+          if (!serverName) {
+            if (key.includes('-')) {
+              const dashIdx = key.indexOf('-');
+              serverName = key.substring(0, dashIdx);
+            } else if (key.includes('_')) {
+              const parts = key.split('_');
+              const ipIndex = parts.findIndex(p => p.includes('.') || p === 'noip');
+              if (ipIndex > -1) {
+                serverName = parts.slice(0, ipIndex).join('_');
+              } else {
+                serverName = parts[0];
+              }
+            } else {
+              serverName = key;
+            }
+          }
+          
+          const ip = todayEntry.ip || '';
+          const domain = todayEntry.domain || '';
+          const identifier = `${serverName}_${checkIps ? ip : domain}`;
+          
+          const yestEntry = parsedYesterdayMap[identifier];
           const label = todayEntry.ip || todayEntry.domain || key;
           if (yestEntry) {
-            if (yestEntry.status === 'Listed' && todayEntry.status === 'Clean') newlyClean.push(label);
-            if (yestEntry.status === 'Clean' && todayEntry.status === 'Listed') newlyListed.push(label);
+            // Check listings
+            let yestSbl = !!yestEntry.sbl;
+            let yestCss = !!yestEntry.css;
+            let yestBarra = !!yestEntry.barracuda;
+            let yestDbl = !!yestEntry.dbl;
+            if (yestEntry.activeLists && Array.isArray(yestEntry.activeLists)) {
+              yestSbl = yestEntry.activeLists.includes('SBL');
+              yestCss = yestEntry.activeLists.includes('CSS');
+              yestBarra = yestEntry.activeLists.includes('BARRA');
+              yestDbl = yestEntry.activeLists.includes('DBL');
+            }
+            const yestIsListed = yestEntry.status === 'Listed' || yestSbl || yestCss || yestBarra || yestDbl;
+            const yestStatus = yestEntry.status || (yestIsListed ? 'Listed' : 'Clean');
+
+            let todaySbl = !!todayEntry.sbl;
+            let todayCss = !!todayEntry.css;
+            let todayBarra = !!todayEntry.barracuda;
+            let todayDbl = !!todayEntry.dbl;
+            if (todayEntry.activeLists && Array.isArray(todayEntry.activeLists)) {
+              todaySbl = todayEntry.activeLists.includes('SBL');
+              todayCss = todayEntry.activeLists.includes('CSS');
+              todayBarra = todayEntry.activeLists.includes('BARRA');
+              todayDbl = todayEntry.activeLists.includes('DBL');
+            }
+            const todayIsListed = todayEntry.status === 'Listed' || todaySbl || todayCss || todayBarra || todayDbl;
+            const todayStatus = todayEntry.status || (todayIsListed ? 'Listed' : 'Clean');
+
+            if (yestStatus === 'Listed' && todayStatus === 'Clean') newlyClean.push(label);
+            if (yestStatus === 'Clean' && todayStatus === 'Listed') newlyListed.push(label);
           }
         });
 

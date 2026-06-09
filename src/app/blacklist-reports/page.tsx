@@ -14,6 +14,10 @@ interface BlacklistIp {
   dbl: boolean;
   status: 'Pending' | 'Clean' | 'Listed' | 'Error';
   errorMsg?: string;
+  serverName?: string;
+  teamName?: string;
+  timestamp?: number;
+  activeLists?: string[];
 }
 
 interface StatItem {
@@ -140,14 +144,32 @@ export default function BlacklistReportsPage() {
       if (type === 'ips' && !isIp) return;
       if (type === 'domains' && !isDomain) return;
       
-      const dashIdx = key.indexOf('-');
-      const serverName = dashIdx > -1 ? key.substring(0, dashIdx) : key;
+      let serverName = entry.serverName || '';
+      if (!serverName) {
+        if (key.includes('-')) {
+          const dashIdx = key.indexOf('-');
+          serverName = key.substring(0, dashIdx);
+        } else if (key.includes('_')) {
+          const parts = key.split('_');
+          const ipIndex = parts.findIndex(p => p.includes('.') || p === 'noip');
+          if (ipIndex > -1) {
+            serverName = parts.slice(0, ipIndex).join('_');
+          } else {
+            serverName = parts[0];
+          }
+        } else {
+          serverName = key;
+        }
+      }
       
       let stats = serverStatsMap[serverName];
       if (!stats) {
         // Find if server belongs to a team (even if not currently active/initialized)
-        const foundTeam = teams.find(t => (t.servers || []).some((s: any) => s.serverName === serverName));
-        const teamName = foundTeam ? foundTeam.name : 'Unknown';
+        let teamName = entry.teamName || '';
+        if (!teamName) {
+          const foundTeam = teams.find(t => (t.servers || []).some((s: any) => s.serverName === serverName));
+          teamName = foundTeam ? foundTeam.name : 'Unknown';
+        }
         
         if (teamFilter !== 'all' && teamName !== teamFilter) return;
         

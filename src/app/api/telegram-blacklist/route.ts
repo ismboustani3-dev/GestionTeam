@@ -17,24 +17,43 @@ export async function POST(request: Request) {
     const lines = message.split('\n');
     const chunks: string[] = [];
     let currentChunk = '';
+    let inPre = false;
 
     for (const line of lines) {
+      // Track if we are entering or leaving pre
+      if (line.includes('<pre>')) inPre = true;
+
       if (line.length > 3800) {
-        if (currentChunk) { chunks.push(currentChunk); currentChunk = ''; }
+        if (currentChunk) {
+          if (inPre) currentChunk += '\n</pre>';
+          chunks.push(currentChunk);
+          currentChunk = '';
+        }
         let remaining = line;
         while (remaining.length > 3800) {
-          chunks.push(remaining.slice(0, 3800));
+          const part = remaining.slice(0, 3800);
+          chunks.push(inPre ? '<pre>' + part + '</pre>' : part);
           remaining = remaining.slice(3800);
         }
-        currentChunk = remaining;
+        currentChunk = inPre ? '<pre>' + remaining : remaining;
       } else if (currentChunk.length + line.length + 1 > 3800) {
+        if (inPre) {
+          currentChunk += '\n</pre>';
+        }
         chunks.push(currentChunk);
-        currentChunk = line;
+        currentChunk = inPre ? '<pre>' + line : line;
       } else {
         currentChunk = currentChunk ? currentChunk + '\n' + line : line;
       }
+
+      if (line.includes('</pre>')) inPre = false;
     }
-    if (currentChunk) chunks.push(currentChunk);
+    if (currentChunk) {
+      if (inPre && !currentChunk.endsWith('</pre>')) {
+        currentChunk += '\n</pre>';
+      }
+      chunks.push(currentChunk);
+    }
 
     const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
 
