@@ -58,10 +58,6 @@ export default function Sidebar() {
             <span className="nav-icon">🚫</span>
             Check Blacklist
           </Link>
-          <Link href="/blacklist-reports" className={`nav-item ${pathname === '/blacklist-reports' ? 'active' : ''}`}>
-            <span className="nav-icon">📊</span>
-            Blacklist Reports
-          </Link>
           <Link href="/ip-status" className={`nav-item ${pathname === '/ip-status' ? 'active' : ''}`}>
             <span className="nav-icon">🌐</span>
             IP Status
