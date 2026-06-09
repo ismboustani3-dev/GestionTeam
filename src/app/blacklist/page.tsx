@@ -5,7 +5,7 @@ import { loadTeamsFromFirebase, saveTeamsToFirebase, loadBlacklistResultsFromFir
 import { getUniqueIpDomains } from '@/lib/ipUtils';
 import '../infrastructure/Infrastructure.css'; // Reusing the same styling
 import './Blacklist.css';
-import '../blacklist-reports/BlacklistReports.css';
+import './BlacklistReports.css';
 
 interface Server {
   id: number;
