@@ -97,7 +97,7 @@
 }
 
 /* Check Type segmented control */
-.check-type-toggle {
+.reports-container .check-type-toggle {
   display: flex;
   background: rgba(15, 23, 42, 0.7);
   padding: 0.25rem;
@@ -106,7 +106,7 @@
   gap: 0.25rem;
 }
 
-.check-type-btn {
+.reports-container .check-type-btn {
   padding: 0.5rem 1rem;
   border-radius: 6px;
   border: none;
@@ -121,12 +121,12 @@
   gap: 0.4rem;
 }
 
-.check-type-btn:hover:not(.active) {
+.reports-container .check-type-btn:hover:not(.active) {
   color: #e2e8f0;
   background: rgba(255, 255, 255, 0.04);
 }
 
-.check-type-btn.active {
+.reports-container .check-type-btn.active {
   background: #6366f1;
   color: #ffffff;
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
