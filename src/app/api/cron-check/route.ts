@@ -595,9 +595,11 @@ async function runBlacklistCheck(type: string, teamName: string) {
         tableContent += `[Team ${team}]\n`;
         tableContent += formatRow("Total Checked", String(tToday.total), String(tYest.total));
         tableContent += formatRow("Clean", String(tToday.clean), String(tYest.clean));
-        tableContent += formatRow("SBL", String(tToday.sbl), String(tYest.sbl));
-        tableContent += formatRow("CSS", String(tToday.css), String(tYest.css));
-        tableContent += formatRow("Barracuda", String(tToday.barra), String(tYest.barra));
+        if (checkIps) {
+          tableContent += formatRow("SBL", String(tToday.sbl), String(tYest.sbl));
+          tableContent += formatRow("CSS", String(tToday.css), String(tYest.css));
+          tableContent += formatRow("Barracuda", String(tToday.barra), String(tYest.barra));
+        }
         if (checkDomains) {
           tableContent += formatRow("DBL", String(tToday.dbl), String(tYest.dbl));
         }

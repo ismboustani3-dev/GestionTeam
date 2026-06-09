@@ -225,9 +225,11 @@ export default function BlacklistPage() {
         let msg = `📊 <b>BLACKLIST REPORT (${checkType.toUpperCase()}) — Team ${activeTeam}</b>\n📅 ${now}\n\n`;
         msg += `Total Checked: <b>${totalChecked}</b>\n`;
         msg += `✅ Clean: <b>${cleanCount}</b>\n`;
-        if (sblCount > 0) msg += `🔴 SBL: <b>${sblCount}</b>\n`;
-        if (cssCount > 0) msg += `🟠 CSS: <b>${cssCount}</b>\n`;
-        if (barracudaCount > 0) msg += `🟣 Barracuda: <b>${barracudaCount}</b>\n`;
+        if (checkType === 'ips') {
+          if (sblCount > 0) msg += `🔴 SBL: <b>${sblCount}</b>\n`;
+          if (cssCount > 0) msg += `🟠 CSS: <b>${cssCount}</b>\n`;
+          if (barracudaCount > 0) msg += `🟣 Barracuda: <b>${barracudaCount}</b>\n`;
+        }
         if (checkType === 'domains' && dblCount > 0) msg += `🟤 DBL: <b>${dblCount}</b>\n`;
 
         if (!hasListings) {
@@ -474,9 +476,11 @@ export default function BlacklistPage() {
           tableContent += `[Team ${team}]\n`;
           tableContent += formatRow("Total Checked", String(tToday.total), String(tYest.total));
           tableContent += formatRow("Clean", String(tToday.clean), String(tYest.clean));
-          tableContent += formatRow("SBL", String(tToday.sbl), String(tYest.sbl));
-          tableContent += formatRow("CSS", String(tToday.css), String(tYest.css));
-          tableContent += formatRow("Barracuda", String(tToday.barra), String(tYest.barra));
+          if (targetType === 'ips') {
+            tableContent += formatRow("SBL", String(tToday.sbl), String(tYest.sbl));
+            tableContent += formatRow("CSS", String(tToday.css), String(tYest.css));
+            tableContent += formatRow("Barracuda", String(tToday.barra), String(tYest.barra));
+          }
           if (targetType === 'domains') {
             tableContent += formatRow("DBL", String(tToday.dbl), String(tYest.dbl));
           }
