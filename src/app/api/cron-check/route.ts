@@ -773,8 +773,27 @@ async function runBlacklistCheck(type: string, teamName: string) {
 
 function parseDate(dateStr: string): Date | null {
   if (!dateStr) return null;
-  const [day, month, year] = dateStr.split('/').map(Number);
-  if (!year || !month) return null;
+  let day = 0, month = 0, year = 0;
+  if (dateStr.includes('/')) {
+    const parts = dateStr.split('/').map(Number);
+    day = parts[0];
+    month = parts[1];
+    year = parts[2];
+  } else if (dateStr.includes('-')) {
+    const parts = dateStr.split('-').map(Number);
+    if (parts[0] > 1000) {
+      year = parts[0];
+      month = parts[1];
+      day = parts[2];
+    } else {
+      day = parts[0];
+      month = parts[1];
+      year = parts[2];
+    }
+  } else {
+    return null;
+  }
+  if (!year || !month || !day) return null;
   return new Date(year, month - 1, day);
 }
 
@@ -1199,6 +1218,92 @@ async function runIpStatusReport() {
     console.error('[CRON] IP Status Report error:', e);
   }
 }
+async function runSummaryReportCheck(teamName: string) {
+  console.log(`[CRON] Running Summary Report check for team: ${teamName}`);
+  const cronData = await loadCronData();
+  const teams = cronData.teams || [];
+  
+  if (teams.length === 0) return;
+
+  const targetTeams = teamName === 'all' ? teams : teams.filter((t: any) => t.name === teamName);
+  
+  const now = new Date();
+  const reportMonthNum = now.getFullYear() * 12 + now.getMonth();
+  const monthLabel = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  
+  let finalMsg = `📊 <b>TEAMS SUMMARY REPORT (${monthLabel})</b>\n📅 ${now.toLocaleString('en-US')}\n${'─'.repeat(25)}\n\n`;
+  
+  let totalProd = 0;
+  let totalNew = 0;
+  let totalToCancel = 0;
+  let totalDeleted = 0;
+
+  const getYearMonthNumberLocal = (dateStr: string): number => {
+    const d = parseDate(dateStr);
+    if (!d) return 0;
+    return d.getFullYear() * 12 + d.getMonth();
+  };
+
+  targetTeams.forEach((team: any) => {
+    const servers = team.servers || [];
+    
+    const newServers: any[] = [];
+    const existingServers: any[] = [];
+    const toCancelServers: any[] = [];
+    const deletedServers: any[] = [];
+
+    servers.forEach((s: any) => {
+      const entryMonthNum = getYearMonthNumberLocal(s.dateEntre);
+      const exitMonthNum = s.dateSortie ? getYearMonthNumberLocal(s.dateSortie) : 0;
+
+      if (s.status === 'deleted') {
+        if (exitMonthNum === reportMonthNum) {
+          deletedServers.push(s);
+        } else if (entryMonthNum === reportMonthNum && reportMonthNum < exitMonthNum) {
+          newServers.push(s);
+        } else if (entryMonthNum < reportMonthNum && reportMonthNum < exitMonthNum) {
+          existingServers.push(s);
+        }
+      } else if (s.status === 'tocancel') {
+        if (entryMonthNum <= reportMonthNum) {
+          toCancelServers.push(s);
+        }
+      } else {
+        if (entryMonthNum === reportMonthNum) {
+          newServers.push(s);
+        } else if (entryMonthNum < reportMonthNum) {
+          existingServers.push(s);
+        }
+      }
+    });
+
+    const activeCount = existingServers.length;
+    const newCount = newServers.length;
+    const toCancelCount = toCancelServers.length;
+    const cancelCount = deletedServers.length;
+
+    totalProd += activeCount;
+    totalNew += newCount;
+    totalToCancel += toCancelCount;
+    totalDeleted += cancelCount;
+
+    finalMsg += `👥 <b>${team.name}</b>\n`;
+    finalMsg += `  🟢 Prod Servers: <b>${activeCount}</b>\n`;
+    finalMsg += `  🔵 New Servers: <b>${newCount}</b>\n`;
+    finalMsg += `  🟠 Cancel Declared: <b>${toCancelCount}</b>\n`;
+    finalMsg += `  🔴 Cancelled Definitive: <b>${cancelCount}</b>\n\n`;
+  });
+
+  if (targetTeams.length > 1) {
+    finalMsg += `<b>========== TOTAL ==========</b>\n`;
+    finalMsg += `  🟢 Prod Servers: <b>${totalProd}</b>\n`;
+    finalMsg += `  🔵 New Servers: <b>${totalNew}</b>\n`;
+    finalMsg += `  🟠 Cancel Declared: <b>${totalToCancel}</b>\n`;
+    finalMsg += `  🔴 Cancelled Definitive: <b>${totalDeleted}</b>\n`;
+  }
+
+  await sendTelegramTopic(finalMsg, TELEGRAM_GROUP_ID, TOPIC_DATABASE_THREAD_ID);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -1215,6 +1320,8 @@ export async function POST(request: NextRequest) {
       await runVmtaCheck(teamName || 'all');
     } else if (type === 'payment_notice') {
       await runPaymentNoticeCheck(teamName || 'all');
+    } else if (type === 'summary_report') {
+      await runSummaryReportCheck(teamName || 'all');
     } else if (type && type.startsWith('old_age')) {
       const minDays = parseInt(type.replace('old_age_', '')) || 60;
       await runOldAgeCheck(minDays, teamName || 'all');

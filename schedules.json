@@ -1,20 +1,19 @@
 [
   {
     "cronExpression": "00 09 * * *",
-    "teamName": "all",
-    "enabled": true,
     "id": "sched_1780508038697",
+    "teamName": "all",
     "name": "check blacklist",
-    "type": "blacklist_both",
-    "lastRun": "2026-06-09T08:00:19.683Z"
+    "lastRun": "2026-06-10T08:00:15.932Z",
+    "enabled": true,
+    "type": "blacklist_both"
   },
   {
-    "id": "sched_payment_notice",
     "enabled": true,
-    "teamName": "all",
-    "cronExpression": "0 10 * * *",
-    "lastRun": "2026-06-09T09:00:00.984Z",
     "type": "payment_notice",
-    "name": "Daily Payment Notice"
+    "id": "sched_payment_notice",
+    "name": "Daily Payment Notice",
+    "teamName": "all",
+    "cronExpression": "0 10 * * *"
   }
 ]

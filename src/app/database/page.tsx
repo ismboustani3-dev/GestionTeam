@@ -23,9 +23,45 @@ interface Server {
 
 function parseDate(dateStr: string): Date | null {
   if (!dateStr) return null;
-  const [day, month, year] = dateStr.split('/').map(Number);
-  if (!year || !month) return null;
+  let day = 0, month = 0, year = 0;
+  if (dateStr.includes('/')) {
+    const parts = dateStr.split('/').map(Number);
+    day = parts[0];
+    month = parts[1];
+    year = parts[2];
+  } else if (dateStr.includes('-')) {
+    const parts = dateStr.split('-').map(Number);
+    if (parts[0] > 1000) {
+      year = parts[0];
+      month = parts[1];
+      day = parts[2];
+    } else {
+      day = parts[0];
+      month = parts[1];
+      year = parts[2];
+    }
+  } else {
+    return null;
+  }
+  if (!year || !month || !day) return null;
   return new Date(year, month - 1, day);
+}
+
+function getYearMonthNumber(dateStr: string): number {
+  const d = parseDate(dateStr);
+  if (!d) return 0;
+  return d.getFullYear() * 12 + d.getMonth();
+}
+
+function getYearMonthNumberFromLabel(label: string): number {
+  const parts = label.split(' ');
+  if (parts.length !== 2) return 0;
+  const monthName = parts[0].toLowerCase();
+  const year = parseInt(parts[1]);
+  const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+  const monthIdx = months.indexOf(monthName);
+  if (monthIdx === -1 || isNaN(year)) return 0;
+  return year * 12 + monthIdx;
 }
 
 function getMonthYear(dateStr: string): string {
@@ -297,6 +333,9 @@ export default function DatabasePage() {
   const [showBulkIpDomain, setShowBulkIpDomain] = useState(false);
   const [bulkIpDomainText, setBulkIpDomainText] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
+  const [selectedReportMonth, setSelectedReportMonth] = useState<string>('');
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [activeReportTab, setActiveReportTab] = useState<'all' | 'new' | 'existing' | 'tocancel' | 'deleted'>('all');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -525,7 +564,7 @@ export default function DatabasePage() {
     }
   };
 
-  const handleBulkCancel = () => {
+  const handleBulkCancel = (actionType: 'tocancel' | 'deleted') => {
     // Extract server names (split by commas, newlines, or spaces)
     const serverNamesToCancel = bulkCancelText
       .split(/[\n, ]+/)
@@ -548,7 +587,13 @@ export default function DatabasePage() {
               ...t,
               servers: t.servers.map(s => {
                 if (serverNamesToCancel.includes(s.serverName.toLowerCase())) {
-                  return { ...s, status: 'tocancel', dateSortie: todayFormatted, dateDeclaration: todayFormatted };
+                  const dateSortie = s.dateSortie || todayFormatted;
+                  return { 
+                    ...s, 
+                    status: actionType, 
+                    dateSortie, 
+                    dateDeclaration: todayFormatted 
+                  };
                 }
                 return s;
               })
@@ -556,7 +601,9 @@ export default function DatabasePage() {
           : t
       )
     );
-    addMonitorLogToFirebase("Bulk Cancel", `Bulk cancelled (Marked To Cancel) servers in team ${activeTeam}: ${serverNamesToCancel.join(', ')}`);
+    
+    const logAction = actionType === 'tocancel' ? 'Mark To Cancel' : 'Delete Definitive';
+    addMonitorLogToFirebase("Bulk Action", `Bulk processed (${logAction}) servers in team ${activeTeam}: ${serverNamesToCancel.join(', ')}`);
     setBulkCancelText('');
     setShowBulkCancel(false);
   };
@@ -812,8 +859,93 @@ export default function DatabasePage() {
     return (isNaN(db.getTime()) ? 0 : db.getTime()) - (isNaN(da.getTime()) ? 0 : da.getTime()); // Newest first
   });
 
+  // Find all unique months present in the system for this team for reporting
+  const availableReportMonths = React.useMemo(() => {
+    const monthsSet = new Set<string>();
+    const allServers = currentTeam?.servers || [];
+    
+    allServers.forEach(s => {
+      if (s.dateEntre) {
+        const m = getMonthYear(s.dateEntre);
+        if (m && m !== 'Unknown Date') monthsSet.add(m);
+      }
+      if (s.dateSortie) {
+        const m = getMonthYear(s.dateSortie);
+        if (m && m !== 'Unknown Date') monthsSet.add(m);
+      }
+    });
+    
+    return Array.from(monthsSet).sort((a, b) => {
+      const db = new Date(b);
+      const da = new Date(a);
+      return (isNaN(db.getTime()) ? 0 : db.getTime()) - (isNaN(da.getTime()) ? 0 : da.getTime());
+    });
+  }, [currentTeam]);
+
+  useEffect(() => {
+    if (availableReportMonths.length > 0) {
+      const now = new Date();
+      const currentMonthStr = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+      if (availableReportMonths.includes(currentMonthStr)) {
+        setSelectedReportMonth(currentMonthStr);
+      } else {
+        setSelectedReportMonth(availableReportMonths[0]);
+      }
+    } else {
+      setSelectedReportMonth('');
+    }
+  }, [availableReportMonths]);
+
+  const getMonthlyReportData = (monthYearStr: string) => {
+    const reportMonthNum = getYearMonthNumberFromLabel(monthYearStr);
+    
+    const newServers: Server[] = [];
+    const existingServers: Server[] = [];
+    const toCancelServers: Server[] = [];
+    const deletedServersList: Server[] = [];
+    
+    const allServers = currentTeam?.servers || [];
+    
+    allServers.forEach(s => {
+      const entryMonthNum = getYearMonthNumber(s.dateEntre);
+      const exitMonthNum = s.dateSortie ? getYearMonthNumber(s.dateSortie) : 0;
+      
+      if (s.status === 'deleted') {
+        if (exitMonthNum === reportMonthNum) {
+          deletedServersList.push(s);
+        } else if (entryMonthNum === reportMonthNum && reportMonthNum < exitMonthNum) {
+          newServers.push(s);
+        } else if (entryMonthNum < reportMonthNum && reportMonthNum < exitMonthNum) {
+          existingServers.push(s);
+        }
+      } else if (s.status === 'tocancel') {
+        if (exitMonthNum === reportMonthNum) {
+          toCancelServers.push(s);
+        } else if (entryMonthNum === reportMonthNum) {
+          newServers.push(s);
+        } else if (entryMonthNum < reportMonthNum) {
+          existingServers.push(s);
+        }
+      } else {
+        // active server
+        if (entryMonthNum === reportMonthNum) {
+          newServers.push(s);
+        } else if (entryMonthNum < reportMonthNum) {
+          existingServers.push(s);
+        }
+      }
+    });
+    
+    return {
+      newServers,
+      existingServers,
+      toCancelServers,
+      deleted: deletedServersList
+    };
+  };
+
   const databaseSchedules = schedules.filter(s => 
-    s.type === 'payment_notice' || s.type.startsWith('by_provider_') || s.type.startsWith('old_age_')
+    s.type === 'payment_notice' || s.type.startsWith('by_provider_') || s.type.startsWith('old_age_') || s.type === 'summary_report'
   );
 
   return (
@@ -826,7 +958,8 @@ export default function DatabasePage() {
         <div className="db-toolbar-tabs">
           <div className="db-tabs">
             {teams.map(team => {
-              const activeCount = team.servers.filter(s => s.status !== 'deleted').length;
+              const activeCount = team.servers.filter(s => s.status === 'active').length;
+              const toCancelCount = team.servers.filter(s => s.status === 'tocancel').length;
               const cancelCount = team.servers.filter(s => s.status === 'deleted' && s.dateSortie && isCurrentMonth(s.dateSortie)).length;
               return (
                 <button
@@ -836,8 +969,9 @@ export default function DatabasePage() {
                 >
                   <span className="tab-name">👥 {team.name}</span>
                   <div className="team-counters">
-                    <span className="team-counter-green" title="Active Servers">{activeCount}</span>
-                    <span className="team-counter-red" title="Servers to Cancel">{cancelCount}</span>
+                    <span className="team-counter-green" title="Prod Servers">{activeCount}</span>
+                    <span className="team-counter-orange" title="Servers To Cancel">{toCancelCount}</span>
+                    <span className="team-counter-red" title="Cancelled Definitive">{cancelCount}</span>
                   </div>
                 </button>
               );
@@ -847,13 +981,20 @@ export default function DatabasePage() {
       </header>
 
       <div className="db-toolbar">
-        <div className="db-toolbar-left">
+        <div className="db-toolbar-left" style={{ display: 'flex', gap: '0.8rem' }}>
           <Link 
             href="/database/monitor" 
             className="bulk-import-btn" 
             style={{background: 'linear-gradient(135deg, #6366f1, #4f46e5)', margin: 0, textDecoration: 'none', display: 'inline-flex', alignItems: 'center'}}
           >
             🖥️ Monitor
+          </Link>
+          <Link 
+            href="/database/summary"
+            className="bulk-import-btn" 
+            style={{background: 'linear-gradient(135deg, #3b82f6, #0ea5e9)', margin: 0, textDecoration: 'none', display: 'inline-flex', alignItems: 'center'}}
+          >
+            📊 Summary Table
           </Link>
         </div>
         <div className="db-toolbar-right">
@@ -895,7 +1036,7 @@ export default function DatabasePage() {
             {showBulk ? '✕ Cancel' : '📋 Bulk Import'}
           </button>
           <button className="bulk-cancel-btn" onClick={() => { setShowBulkCancel(!showBulkCancel); setShowForm(false); setShowBulk(false); setShowBulkIpDomain(false); }}>
-            {showBulkCancel ? '✕ Cancel' : '🗑️ Bulk Cancel'}
+            {showBulkCancel ? '✕ Cancel' : '🗑️ Bulk Cancel/Delete'}
           </button>
           <button className="bulk-import-btn" style={{background: 'linear-gradient(135deg, #10b981, #3b82f6)'}} onClick={() => { setShowBulkIpDomain(!showBulkIpDomain); setShowForm(false); setShowBulk(false); setShowBulkCancel(false); }}>
             {showBulkIpDomain ? '✕ Cancel' : '🌐 Map IPs & Domains'}
@@ -961,6 +1102,7 @@ export default function DatabasePage() {
                 <option value="payment_notice" style={{ background: '#1e293b' }}>Payment Notice</option>
                 <option value="old_age" style={{ background: '#1e293b' }}>Old Age Server Notice</option>
                 <option value="by_provider" style={{ background: '#1e293b' }}>By Provider Notice</option>
+                <option value="summary_report" style={{ background: '#1e293b' }}>Summary Table Report</option>
               </select>
               {newScheduleType === 'old_age' && (
                 <input
@@ -1155,8 +1297,8 @@ export default function DatabasePage() {
       {/* Bulk Cancel */}
       {showBulkCancel && (
         <div className="bulk-form animate-fade-in" style={{ borderColor: 'rgba(248, 113, 113, 0.4)' }}>
-          <h3 style={{ color: '#f87171' }}>🗑️ Bulk Cancel Servers</h3>
-          <p className="bulk-hint">Paste your list of server names to cancel (separated by commas, spaces, or newlines).</p>
+          <h3 style={{ color: '#f87171' }}>🗑️ Bulk Cancel/Delete Servers</h3>
+          <p className="bulk-hint">Paste your list of server names (separated by commas, spaces, or newlines).</p>
           <p className="bulk-example">Example: <code>srv-01, srv-02, srv-03</code></p>
           <textarea
             className="bulk-textarea"
@@ -1167,7 +1309,21 @@ export default function DatabasePage() {
           />
           <div className="bulk-actions">
             <span className="bulk-count">{bulkCancelText.split(/[\n, ]+/).filter(l => l.trim()).length} server(s) detected</span>
-            <button className="submit-btn danger-submit" onClick={handleBulkCancel}>🗑️ Cancel All</button>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button 
+                className="submit-btn" 
+                style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }} 
+                onClick={() => handleBulkCancel('tocancel')}
+              >
+                ⚠️ Mark To Cancel
+              </button>
+              <button 
+                className="submit-btn danger-submit" 
+                onClick={() => handleBulkCancel('deleted')}
+              >
+                ❌ Delete Definitive
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1315,7 +1471,8 @@ export default function DatabasePage() {
             >
               📋 Copy Urgent Servers
             </button>
-            <span className="stat-active">ACTIVE: <strong>{activeServers.length} Servers</strong></span>
+            <span className="stat-active">ACTIVE: <strong>{activeServers.filter(s => s.status === 'active').length} Servers</strong></span>
+            <span className="stat-orange">TO CANCEL: <strong>{activeServers.filter(s => s.status === 'tocancel').length} Servers</strong></span>
             <span className="stat-new">NEW SERVER ADD: <strong>{monthNewCount} {currentMonthName}</strong></span>
             <span className="stat-del">MONTH DEL: <strong>{monthDelCount}</strong></span>
           </div>
@@ -1368,13 +1525,13 @@ export default function DatabasePage() {
                         {s.status === 'tocancel' ? (
                           <>
                             <button className="minimal-btn" style={{ borderColor: '#22c55e', color: '#22c55e' }} title="Keep Server" onClick={() => handleKeepServer(s.id)}>Keep</button>
-                            <button className="minimal-btn danger" title="Delete Total" onClick={() => handleDeleteToHistory(s.id)}>Del Total</button>
+                            <button className="minimal-btn danger" title="Delete Definitive" onClick={() => handleDeleteToHistory(s.id)}>Delete Definitive</button>
                           </>
                         ) : (
                           <>
                             <button className="minimal-btn" title="Edit" onClick={() => handleEditClick(s)}>Edit</button>
                             <button className="minimal-btn" style={{ borderColor: '#f97316', color: '#f97316' }} title="Mark To Cancel" onClick={() => handleMarkToCancel(s.id)}>To Cancel</button>
-                            <button className="minimal-btn danger" title="Delete Total" onClick={() => handleDeleteToHistory(s.id)}>Del Total</button>
+                            <button className="minimal-btn danger" title="Delete Definitive" onClick={() => handleDeleteToHistory(s.id)}>Delete Definitive</button>
                           </>
                         )}
                       </div>
@@ -1397,6 +1554,30 @@ export default function DatabasePage() {
           <h2>{activeTeam} - DELETED HISTORY</h2>
           <div className="history-actions">
             <span className="history-count">{deletedServers.length} Records</span>
+            {availableReportMonths.length > 0 && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginRight: '0.5rem' }}>
+                <select 
+                  className="filter-select"
+                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem', background: 'rgba(255,255,255,0.06)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}
+                  value={selectedReportMonth || availableReportMonths[0]}
+                  onChange={(e) => setSelectedReportMonth(e.target.value)}
+                >
+                  {availableReportMonths.map(m => <option key={m} value={m} style={{ background: '#1e293b' }}>{m}</option>)}
+                </select>
+                <button 
+                  className="minimal-btn"
+                  style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: '#fff', border: 'none', padding: '0.35rem 0.8rem' }}
+                  onClick={() => {
+                    if (!selectedReportMonth && availableReportMonths.length > 0) {
+                      setSelectedReportMonth(availableReportMonths[0]);
+                    }
+                    setIsReportModalOpen(true);
+                  }}
+                >
+                  📊 View Monthly Report
+                </button>
+              </div>
+            )}
             <button className="clear-all-btn" onClick={handleClearAllHistory}>Clear All</button>
           </div>
         </div>
@@ -1405,7 +1586,19 @@ export default function DatabasePage() {
           <div className="history-months-container">
             {sortedHistoryMonths.map(month => (
               <div key={month} className="history-month-block">
-                <h3 className="history-month-title">📅 {month}</h3>
+                <div className="history-month-header">
+                  <h3 className="history-month-title">📅 {month}</h3>
+                  <button 
+                    className="minimal-btn" 
+                    style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.4)', color: '#818cf8', padding: '0.3rem 0.8rem' }}
+                    onClick={() => {
+                      setSelectedReportMonth(month);
+                      setIsReportModalOpen(true);
+                    }}
+                  >
+                    📊 View Monthly Report
+                  </button>
+                </div>
                 <table className="db-table clean-table history-table">
                   <thead>
                     <tr>
@@ -1445,6 +1638,170 @@ export default function DatabasePage() {
           </div>
         )}
       </div>
+
+      {isReportModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsReportModalOpen(false)}>
+          <div className="report-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="report-modal-header">
+              <h2>📊 Monthly Report — {selectedReportMonth || availableReportMonths[0]} ({activeTeam})</h2>
+              <button className="close-btn" onClick={() => setIsReportModalOpen(false)}>✕</button>
+            </div>
+            <div className="report-modal-body">
+              {(() => {
+                const reportMonth = selectedReportMonth || availableReportMonths[0];
+                const reportData = getMonthlyReportData(reportMonth);
+                
+                // Filter items based on activeReportTab
+                let displayItems: (Server & { reportType: string })[] = [];
+                
+                const mappedNew = reportData.newServers.map(s => ({ ...s, reportType: 'New' }));
+                const mappedExisting = reportData.existingServers.map(s => ({ ...s, reportType: 'Existing' }));
+                const mappedToCancel = reportData.toCancelServers.map(s => ({ ...s, reportType: 'To Cancel' }));
+                const mappedDeleted = reportData.deleted.map(s => ({ ...s, reportType: 'Cancelled' }));
+                
+                if (activeReportTab === 'all') {
+                  displayItems = [...mappedNew, ...mappedExisting, ...mappedToCancel, ...mappedDeleted];
+                } else if (activeReportTab === 'new') {
+                  displayItems = mappedNew;
+                } else if (activeReportTab === 'existing') {
+                  displayItems = mappedExisting;
+                } else if (activeReportTab === 'tocancel') {
+                  displayItems = mappedToCancel;
+                } else if (activeReportTab === 'deleted') {
+                  displayItems = mappedDeleted;
+                }
+                
+                return (
+                  <>
+                    {/* Dashboard cards */}
+                    <div className="report-dashboard-grid">
+                      <div className="report-stat-card new">
+                        <span className="report-stat-label">🆕 New Servers</span>
+                        <span className="report-stat-value">{reportData.newServers.length}</span>
+                      </div>
+                      <div className="report-stat-card existing">
+                        <span className="report-stat-label">🖥️ Existing Servers</span>
+                        <span className="report-stat-value">{reportData.existingServers.length}</span>
+                      </div>
+                      <div className="report-stat-card tocancel">
+                        <span className="report-stat-label">⚠️ To Cancel</span>
+                        <span className="report-stat-value">{reportData.toCancelServers.length}</span>
+                      </div>
+                      <div className="report-stat-card deleted">
+                        <span className="report-stat-label">❌ Cancelled / Deleted</span>
+                        <span className="report-stat-value">{reportData.deleted.length}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Tabs switcher */}
+                    <div className="report-tabs">
+                      <button 
+                        className={`report-tab-btn ${activeReportTab === 'all' ? 'active' : ''}`}
+                        onClick={() => setActiveReportTab('all')}
+                      >
+                        All ({mappedNew.length + mappedExisting.length + mappedToCancel.length + mappedDeleted.length})
+                      </button>
+                      <button 
+                        className={`report-tab-btn ${activeReportTab === 'new' ? 'active' : ''}`}
+                        onClick={() => setActiveReportTab('new')}
+                        style={{ color: '#38bdf8' }}
+                      >
+                        New ({mappedNew.length})
+                      </button>
+                      <button 
+                        className={`report-tab-btn ${activeReportTab === 'existing' ? 'active' : ''}`}
+                        onClick={() => setActiveReportTab('existing')}
+                        style={{ color: '#34d399' }}
+                      >
+                        Already Existing ({mappedExisting.length})
+                      </button>
+                      <button 
+                        className={`report-tab-btn ${activeReportTab === 'tocancel' ? 'active' : ''}`}
+                        onClick={() => setActiveReportTab('tocancel')}
+                        style={{ color: '#f59e0b' }}
+                      >
+                        To Cancel ({mappedToCancel.length})
+                      </button>
+                      <button 
+                        className={`report-tab-btn ${activeReportTab === 'deleted' ? 'active' : ''}`}
+                        onClick={() => setActiveReportTab('deleted')}
+                        style={{ color: '#f87171' }}
+                      >
+                        Definitive Deleted ({mappedDeleted.length})
+                      </button>
+                    </div>
+                    
+                    {/* Table */}
+                    <div className="db-table-container">
+                      <table className="db-table clean-table">
+                        <thead>
+                          <tr>
+                            <th>Server</th>
+                            <th>Main IP</th>
+                            <th>Provider</th>
+                            <th>ASN</th>
+                            <th>DateEntre</th>
+                            <th>Notice Date</th>
+                            <th>Type</th>
+                            <th>IPs</th>
+                            <th>Class</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {displayItems.length > 0 ? (
+                            displayItems.map((item) => (
+                              <tr key={item.id}>
+                                <td className="td-name">{item.serverName || '—'}</td>
+                                <td className="td-ip">{item.mainIp || '—'}</td>
+                                <td>{item.provider || '—'}</td>
+                                <td>{item.asn || '—'}</td>
+                                <td className="td-date">{item.dateEntre || '—'}</td>
+                                <td className="td-date">{item.dateSortie ? <span className={`notice-badge ${getNoticeColorClass(item.dateSortie)}`}>⚠️ {item.dateSortie}</span> : '—'}</td>
+                                <td>
+                                  <span className={`notice-badge ${
+                                    item.reportType === 'New' ? 'warning' : 
+                                    item.reportType === 'Existing' ? 'normal' : 
+                                    item.reportType === 'To Cancel' ? 'warning' : 'urgent'
+                                  }`} style={{
+                                    borderColor: item.reportType === 'New' ? '#3b82f6' : item.reportType === 'Existing' ? '#10b981' : item.reportType === 'To Cancel' ? '#f59e0b' : '#ef4444',
+                                    color: item.reportType === 'New' ? '#3b82f6' : item.reportType === 'Existing' ? '#10b981' : item.reportType === 'To Cancel' ? '#f59e0b' : '#ef4444',
+                                    background: 'transparent',
+                                    border: '1px solid'
+                                  }}>
+                                    {item.reportType}
+                                  </span>
+                                </td>
+                                <td>{item.nbrIps || 0}</td>
+                                <td>{item.classType || getClassFromIps(item.nbrIps)}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={9} className="empty-row" style={{ textAlign: 'center', padding: '2rem' }}>
+                                No servers in this category for this month.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+            <div className="audit-modal-footer" style={{ padding: '1rem 1.5rem', background: 'rgba(30, 41, 59, 0.4)', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <button 
+                className="minimal-btn" 
+                style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '0.5rem 1.5rem', fontSize: '0.9rem' }}
+                onClick={() => setIsReportModalOpen(false)}
+              >
+                Close Report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
     </div>
   );

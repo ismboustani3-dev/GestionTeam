@@ -718,9 +718,73 @@ export default function BlacklistPage() {
     currentTeamData.servers.filter(s => s.status !== 'deleted').forEach(s => {
       const itemsList: BlacklistIp[] = [];
       
+      const getHistoryItem = (serverName: string, ip: string, domain: string) => {
+        // 1. Direct lookup with standard manual key format: `serverName-ip` or `serverName-domain`
+        const key = `${serverName}-${checkType === 'ips' ? ip : domain}`;
+        if (displayMap[key]) return displayMap[key];
+        
+        // 2. Lookup with cron format: `serverName_ip_domain`
+        const cronKey = `${serverName}_${ip || 'noip'}_${domain || 'nodomain'}`;
+        if (displayMap[cronKey]) {
+          const entry = displayMap[cronKey];
+          // Convert cron style activeLists to sbl/css/barracuda/dbl boolean flags
+          let sbl = !!entry.sbl;
+          let css = !!entry.css;
+          let barracuda = !!entry.barracuda;
+          let dbl = !!entry.dbl;
+          if (entry.activeLists && Array.isArray(entry.activeLists)) {
+            sbl = entry.activeLists.includes('SBL');
+            css = entry.activeLists.includes('CSS');
+            barracuda = entry.activeLists.includes('BARRA');
+            dbl = entry.activeLists.includes('DBL');
+          }
+          return {
+            ...entry,
+            sbl,
+            css,
+            barracuda,
+            dbl
+          };
+        }
+        
+        // 3. Fallback search by scanning values
+        const found = Object.values(displayMap).find(entry => {
+          if (!entry) return false;
+          const matchServer = entry.serverName === serverName;
+          if (!matchServer) return false;
+          
+          if (checkType === 'ips') {
+            return entry.ip === ip;
+          } else {
+            return entry.domain === domain;
+          }
+        });
+        
+        if (found) {
+          let sbl = !!found.sbl;
+          let css = !!found.css;
+          let barracuda = !!found.barracuda;
+          let dbl = !!found.dbl;
+          if (found.activeLists && Array.isArray(found.activeLists)) {
+            sbl = found.activeLists.includes('SBL');
+            css = found.activeLists.includes('CSS');
+            barracuda = found.activeLists.includes('BARRA');
+            dbl = found.activeLists.includes('DBL');
+          }
+          return {
+            ...found,
+            sbl,
+            css,
+            barracuda,
+            dbl
+          };
+        }
+        
+        return null;
+      };
+
       const addItem = (ip: string, domain: string) => {
-        const key = `${s.serverName}-${checkType === 'ips' ? ip : domain}`;
-        const res = displayMap[key];
+        const res = getHistoryItem(s.serverName, ip, domain);
         
         if (res) {
           itemsList.push(res);
@@ -819,12 +883,13 @@ export default function BlacklistPage() {
     alert(`Copied ${items.length} items to clipboard!`);
   };
 
-  // Generate last 14 days for history
-  const last14Days = Array.from({ length: 14 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    return d;
-  });
+  // Generate dynamically all dates that have historical data sorted descending
+  const historicalDates = useMemo(() => {
+    return Object.keys(historicalData)
+      .filter(dateStr => Object.keys(historicalData[dateStr] || {}).length > 0)
+      .sort()
+      .reverse();
+  }, [historicalData]);
 
   const blacklistSchedules = schedules.filter(s => 
     s.type === 'blacklist_ips' || s.type === 'blacklist_domains' || s.type === 'blacklist_both'
@@ -952,7 +1017,19 @@ export default function BlacklistPage() {
       }
       
       const name = type === 'ips' ? entry.ip : entry.domain;
-      const isListed = entry.sbl || entry.css || entry.barracuda || entry.dbl;
+      
+      let sbl = !!entry.sbl;
+      let css = !!entry.css;
+      let barra = !!entry.barracuda;
+      let dbl = !!entry.dbl;
+      if (entry.activeLists && Array.isArray(entry.activeLists)) {
+        sbl = entry.activeLists.includes('SBL');
+        css = entry.activeLists.includes('CSS');
+        barra = entry.activeLists.includes('BARRA');
+        dbl = entry.activeLists.includes('DBL');
+      }
+
+      const isListed = sbl || css || barra || dbl;
       const status = entry.status || (isListed ? 'Listed' : 'Clean');
       
       stats.total++;
@@ -964,19 +1041,19 @@ export default function BlacklistPage() {
       } else if (status === 'Listed') {
         stats.listed++;
         listedCount++;
-        if (entry.sbl) { stats.sbl++; sblCount++; }
-        if (entry.css) { stats.css++; cssCount++; }
-        if (entry.barracuda) { stats.barracuda++; barraCount++; }
-        if (entry.dbl) { stats.dbl++; dblCount++; }
+        if (sbl) { stats.sbl++; sblCount++; }
+        if (css) { stats.css++; cssCount++; }
+        if (barra) { stats.barracuda++; barraCount++; }
+        if (dbl) { stats.dbl++; dblCount++; }
       }
       
       stats.items.push({
         name,
         status,
-        sbl: !!entry.sbl,
-        css: !!entry.css,
-        barracuda: !!entry.barracuda,
-        dbl: !!entry.dbl
+        sbl,
+        css,
+        barracuda: barra,
+        dbl
       });
     });
     
@@ -1203,15 +1280,11 @@ export default function BlacklistPage() {
 
       {viewMode === 'historical' && (
         <div className="date-cards-wrapper">
-          {last14Days.filter(d => {
-            const dateStr = d.toISOString().split('T')[0];
-            return historicalData[dateStr] && Object.keys(historicalData[dateStr]).length > 0;
-          }).map((d, idx) => {
-            const dateStr = d.toISOString().split('T')[0];
-            const hasData = true; // since we just filtered it
+          {historicalDates.map((dateStr) => {
             const isActive = selectedHistoryDate === dateStr;
-            const yearStr = d.getFullYear();
-            const dayStr = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+            const parts = dateStr.split('-');
+            const yearStr = parts[0];
+            const dayStr = parts.length === 3 ? `${parts[2]}/${parts[1]}` : dateStr;
             
             return (
               <div 
