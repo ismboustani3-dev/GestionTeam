@@ -356,23 +356,32 @@ export default function DatabasePage() {
   
   // Filter search
   const filteredActiveServers = activeServers.filter(s => {
-    const term = searchTerm.toLowerCase();
-    if (!term) return true;
+    if (!searchTerm) return true;
     
-    // Helper to check domain mappings
-    const matchesDomain = s.ipDomains && s.ipDomains.some(d => d.domain.toLowerCase().includes(term));
-    
-    if (filterField === 'ip') return (s.mainIp || '').toLowerCase().includes(term) || (s.ipDomains && s.ipDomains.some(d => d.ip.toLowerCase().includes(term)));
-    if (filterField === 'domain') return matchesDomain;
-    if (filterField === 'serverName') return (s.serverName || '').toLowerCase().includes(term);
-    
-    return (
-      (s.serverName || '').toLowerCase().includes(term) ||
-      (s.mainIp || '').toLowerCase().includes(term) ||
-      (s.provider || '').toLowerCase().includes(term) ||
-      (s.asn || '').toLowerCase().includes(term) ||
-      matchesDomain
-    );
+    // Split search terms by spaces, commas, semicolons, or newlines
+    const terms = searchTerm.split(/[\s,;\n]+/).map(t => t.trim().toLowerCase()).filter(Boolean);
+    if (terms.length === 0) return true;
+
+    // A server matches if it matches ANY of the terms
+    return terms.some(term => {
+      // Helper to check domain mappings
+      const matchesDomain = s.ipDomains && s.ipDomains.some(d => d.domain.toLowerCase().includes(term));
+      
+      if (filterField === 'ip') {
+        return (s.mainIp || '').toLowerCase().includes(term) || 
+               (s.ipDomains && s.ipDomains.some(d => d.ip.toLowerCase().includes(term)));
+      }
+      if (filterField === 'domain') return matchesDomain;
+      if (filterField === 'serverName') return (s.serverName || '').toLowerCase().includes(term);
+      
+      return (
+        (s.serverName || '').toLowerCase().includes(term) ||
+        (s.mainIp || '').toLowerCase().includes(term) ||
+        (s.provider || '').toLowerCase().includes(term) ||
+        (s.asn || '').toLowerCase().includes(term) ||
+        matchesDomain
+      );
+    });
   });
 
   const deletedServers = currentTeam?.servers.filter(s => s.status === 'deleted') || [];
