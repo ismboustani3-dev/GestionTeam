@@ -4,28 +4,32 @@ import { db } from "./firebase";
 const DOC_REF = doc(db, "appData", "teams");
 
 export async function loadTeamsFromFirebase(): Promise<any[] | null> {
-  // AGGRESSIVE RECOVERY
+  const isBrowser = typeof window !== 'undefined';
+
+  // SAFE FALLBACK RECOVERY ONLY IF FIREBASE IS EMPTY
   try {
-    const saved = window.localStorage.getItem('gestiq_teams_data');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-        let fbTeams: any[] = [];
-        try {
-          const snap = await getDoc(DOC_REF);
-          if (snap.exists()) fbTeams = snap.data().teams || [];
-        } catch (e) {
-          console.warn('Firebase error during recovery check, assuming empty.');
-        }
-        
-        const localServersCount = parsed.reduce((acc: number, t: any) => acc + (t.servers?.length || 0), 0);
-        const fbServersCount = fbTeams.reduce((acc: number, t: any) => acc + (t.servers?.length || 0), 0);
-        
-        // If local has more data than FB, we MUST recover!
-        if (localServersCount > fbServersCount || (localServersCount > 0 && fbServersCount === 0)) {
-          console.log('[RECOVERY] Restoring from localstorage...');
-          await saveTeamsToFirebase(parsed);
-          return parsed;
+    if (isBrowser) {
+      const saved = window.localStorage.getItem('gestiq_teams_data');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+          let fbTeams: any[] = [];
+          try {
+            const snap = await getDoc(DOC_REF);
+            if (snap.exists()) fbTeams = snap.data().teams || [];
+          } catch (e) {
+            console.warn('Firebase error during recovery check, assuming empty.');
+          }
+          
+          const localServersCount = parsed.reduce((acc: number, t: any) => acc + (t.servers?.length || 0), 0);
+          const fbServersCount = fbTeams.reduce((acc: number, t: any) => acc + (t.servers?.length || 0), 0);
+          
+          // Restore ONLY if Firebase has NO servers at all (e.g. database wipe/reset)
+          if (fbServersCount === 0 && localServersCount > 0) {
+            console.log('[RECOVERY] Firebase is empty. Restoring from localstorage...');
+            await saveTeamsToFirebase(parsed);
+            return parsed;
+          }
         }
       }
     }
@@ -36,7 +40,13 @@ export async function loadTeamsFromFirebase(): Promise<any[] | null> {
   try {
     const snap = await getDoc(DOC_REF);
     if (snap.exists() && snap.data().teams && snap.data().teams.length > 0) {
-      return snap.data().teams;
+      const fbTeams = snap.data().teams;
+      if (isBrowser) {
+        try {
+          window.localStorage.setItem('gestiq_teams_data', JSON.stringify(fbTeams));
+        } catch (e) {}
+      }
+      return fbTeams;
     }
   } catch (e) {
     console.error("Failed to load teams from firebase", e);
@@ -51,34 +61,45 @@ export async function saveTeamsToFirebase(teams: any[]) {
   } catch (e) {
     console.error("Failed to save teams to firebase", e);
   }
-  try {
-    window.localStorage.setItem('gestiq_teams_data', JSON.stringify(teams));
-  } catch (e) {}
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.setItem('gestiq_teams_data', JSON.stringify(teams));
+    } catch (e) {}
+  }
 }
 
 const BL_RESULTS_REF = doc(db, "appData", "blacklist_results");
 
 export async function loadBlacklistResultsFromFirebase(): Promise<any | null> {
+  const isBrowser = typeof window !== 'undefined';
   try {
     const snap = await getDoc(BL_RESULTS_REF);
     if (snap.exists() && Object.keys(snap.data().results || {}).length > 0) {
-      return snap.data().results;
+      const results = snap.data().results;
+      if (isBrowser) {
+        try {
+          window.localStorage.setItem('blacklist_results_data', JSON.stringify(results));
+        } catch (e) {}
+      }
+      return results;
     }
   } catch (e) {
     console.error("Failed to load blacklist results from firebase", e);
   }
   
   // Fallback to localStorage
-  try {
-    const saved = window.localStorage.getItem('blacklist_results_data');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed && Object.keys(parsed).length > 0) {
-        await saveBlacklistResultsToFirebase(parsed);
-        return parsed;
+  if (isBrowser) {
+    try {
+      const saved = window.localStorage.getItem('blacklist_results_data');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && Object.keys(parsed).length > 0) {
+          await saveBlacklistResultsToFirebase(parsed);
+          return parsed;
+        }
       }
-    }
-  } catch(e) {}
+    } catch(e) {}
+  }
   
   return null;
 }
@@ -89,9 +110,11 @@ export async function saveBlacklistResultsToFirebase(results: any) {
   } catch (e) {
     console.error("Failed to save blacklist results to firebase", e);
   }
-  try {
-    window.localStorage.setItem('blacklist_results_data', JSON.stringify(results));
-  } catch (e) {}
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.setItem('blacklist_results_data', JSON.stringify(results));
+    } catch (e) {}
+  }
 }
 
 const IP_STATUS_REF = doc(db, "appData", "ip_status");

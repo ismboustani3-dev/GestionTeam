@@ -317,7 +317,7 @@ export default function SummaryPage() {
       const entryMonthNum = getYearMonthNumber(s.dateEntre);
       const exitMonthNum = s.dateSortie ? getYearMonthNumber(s.dateSortie) : 0;
 
-            if (s.status === 'deleted') {
+      if (s.status === 'deleted') {
         if (exitMonthNum === reportMonthNum) {
           deletedServers.push(s);
         } else if (entryMonthNum === reportMonthNum && reportMonthNum < exitMonthNum) {
@@ -326,8 +326,12 @@ export default function SummaryPage() {
           existingServers.push(s);
         }
       } else if (s.status === 'tocancel') {
-        if (entryMonthNum <= reportMonthNum) {
+        if (exitMonthNum === reportMonthNum) {
           toCancelServers.push(s);
+        } else if (entryMonthNum === reportMonthNum && reportMonthNum < exitMonthNum) {
+          newServers.push(s);
+        } else if (entryMonthNum < reportMonthNum && reportMonthNum < exitMonthNum) {
+          existingServers.push(s);
         }
       } else {
         if (entryMonthNum === reportMonthNum) {

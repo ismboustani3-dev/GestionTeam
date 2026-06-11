@@ -921,9 +921,9 @@ export default function DatabasePage() {
       } else if (s.status === 'tocancel') {
         if (exitMonthNum === reportMonthNum) {
           toCancelServers.push(s);
-        } else if (entryMonthNum === reportMonthNum) {
+        } else if (entryMonthNum === reportMonthNum && reportMonthNum < exitMonthNum) {
           newServers.push(s);
-        } else if (entryMonthNum < reportMonthNum) {
+        } else if (entryMonthNum < reportMonthNum && reportMonthNum < exitMonthNum) {
           existingServers.push(s);
         }
       } else {
