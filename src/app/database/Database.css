@@ -1108,3 +1108,13 @@
   transform: translateY(0);
 }
 
+.copy-srv-btn {
+  opacity: 0.5;
+}
+
+.copy-srv-btn:hover {
+  opacity: 1;
+  color: #fff !important;
+}
+
+

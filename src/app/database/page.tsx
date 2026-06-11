@@ -1519,9 +1519,35 @@ export default function DatabasePage() {
                 sortedServers.map((s) => (
                   <tr key={s.id} style={s.status === 'tocancel' ? { background: 'rgba(249, 115, 22, 0.08)' } : undefined}>
                     <td className="td-name">
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ color: s.status === 'tocancel' ? '#f97316' : undefined, fontWeight: 600 }}>{s.serverName || '—'}</span>
-                        {s.status === 'tocancel' && <span style={{ fontSize: '0.75rem', color: '#f97316', fontWeight: 'bold' }}>tocancel</span>}
+                      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.4rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ color: s.status === 'tocancel' ? '#f97316' : undefined, fontWeight: 600 }}>{s.serverName || '—'}</span>
+                          {s.status === 'tocancel' && <span style={{ fontSize: '0.75rem', color: '#f97316', fontWeight: 'bold' }}>tocancel</span>}
+                        </div>
+                        {s.serverName && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(s.serverName);
+                              alert(`Copied ${s.serverName} to clipboard!`);
+                            }}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#94a3b8',
+                              cursor: 'pointer',
+                              fontSize: '0.85rem',
+                              padding: '0.2rem',
+                              transition: 'color 0.2s',
+                              display: 'inline-flex',
+                              alignItems: 'center'
+                            }}
+                            title="Copy Server Name"
+                            className="copy-srv-btn"
+                          >
+                            📋
+                          </button>
+                        )}
                       </div>
                     </td>
                     <td className="td-ip">
@@ -1655,7 +1681,35 @@ export default function DatabasePage() {
                   <tbody>
                     {historyByMonth[month].map((s) => (
                       <tr key={s.id}>
-                        <td className="td-name">{s.serverName || '—'}</td>
+                        <td className="td-name">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span>{s.serverName || '—'}</span>
+                            {s.serverName && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigator.clipboard.writeText(s.serverName);
+                                  alert(`Copied ${s.serverName} to clipboard!`);
+                                }}
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: '#94a3b8',
+                                  cursor: 'pointer',
+                                  fontSize: '0.85rem',
+                                  padding: '0.2rem',
+                                  transition: 'color 0.2s',
+                                  display: 'inline-flex',
+                                  alignItems: 'center'
+                                }}
+                                title="Copy Server Name"
+                                className="copy-srv-btn"
+                              >
+                                📋
+                              </button>
+                            )}
+                          </div>
+                        </td>
                         <td className="td-ip">{s.mainIp}</td>
                         <td>{s.asn}</td>
                         <td>{s.dateEntre}</td>
