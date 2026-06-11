@@ -611,7 +611,6 @@ export default function DatabasePage() {
   const handleBulkIpDomain = () => {
     const lines = bulkIpDomainText.trim().split('\n').filter(l => l.trim());
     const updates = new Map<string, {ip: string, domain: string}[]>();
-    const allUpdatedIps = new Set<string>();
     
     for (const line of lines) {
       const parts = line.split(':');
@@ -623,9 +622,10 @@ export default function DatabasePage() {
           updates.set(serverName, []);
         }
         updates.get(serverName)!.push({ip, domain});
-        allUpdatedIps.add(ip);
       }
     }
+
+    const actualChangedIps = new Set<string>();
 
     // Compute updated teams
     const updatedTeams = teams.map((t: any) => {
@@ -651,9 +651,12 @@ export default function DatabasePage() {
                 const newDomain = mapping.domain.trim();
                 updateMap.set(ip, newDomain);
                 const oldDomain = oldDomainMap.get(ip);
-                if (oldDomain && oldDomain !== newDomain) {
+                if (oldDomain !== newDomain) {
                   changedIps.add(ip);
-                  changedOldDomains.add(oldDomain);
+                  actualChangedIps.add(ip);
+                  if (oldDomain) {
+                    changedOldDomains.add(oldDomain);
+                  }
                 }
               }
 
@@ -714,13 +717,13 @@ export default function DatabasePage() {
     setTeams(updatedTeams);
     saveTeamsToFirebase(updatedTeams);
 
-    // Update IP Status tracker to 'Change DOM' for all updated IPs for today
-    if (allUpdatedIps.size > 0) {
+    // Update IP Status tracker to 'Change DOM' for all actual changed IPs for today
+    if (actualChangedIps.size > 0) {
       loadIpStatusFromFirebase().then(ipHistory => {
         const history = ipHistory || {};
         const today = new Date().toISOString().split('T')[0];
         let changed = false;
-        allUpdatedIps.forEach(ip => {
+        actualChangedIps.forEach(ip => {
           if (!history[ip]) history[ip] = {};
           if (history[ip][today] !== 'Change DOM') {
             history[ip][today] = 'Change DOM';
