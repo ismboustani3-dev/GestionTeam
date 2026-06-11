@@ -4,7 +4,7 @@
     "id": "sched_1780508038697",
     "teamName": "all",
     "name": "check blacklist",
-    "lastRun": "2026-06-10T08:00:15.932Z",
+    "lastRun": "2026-06-11T08:00:13.313Z",
     "enabled": true,
     "type": "blacklist_both"
   },

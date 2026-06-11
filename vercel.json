@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron-check?type=blacklist_both&teamName=all",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron-check?type=payment_notice&teamName=all",
+      "schedule": "0 10 * * *"
+    }
+  ]
+}

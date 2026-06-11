@@ -1345,6 +1345,50 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get('type');
+    const teamName = searchParams.get('teamName') || 'all';
+
+    if (!type) {
+      return NextResponse.json({ error: 'Missing type parameter' }, { status: 400 });
+    }
+
+    let resultMessage = 'ok';
+
+    if (type === 'rdns') {
+      await runRdnsCheck(teamName);
+    } else if (type === 'vmta') {
+      await runVmtaCheck(teamName);
+    } else if (type === 'both') {
+      await runRdnsCheck(teamName);
+      await runVmtaCheck(teamName);
+    } else if (type === 'payment_notice') {
+      await runPaymentNoticeCheck(teamName);
+    } else if (type === 'summary_report') {
+      await runSummaryReportCheck(teamName);
+    } else if (type.startsWith('old_age')) {
+      const minDays = parseInt(type.replace('old_age_', '')) || 60;
+      await runOldAgeCheck(minDays, teamName);
+    } else if (type.startsWith('by_provider_')) {
+      const provider = type.replace('by_provider_', '');
+      await runProviderCheck(provider, teamName);
+    } else if (type === 'spf') {
+      resultMessage = await runSpfCheck(teamName) || 'ok';
+    } else if (type.startsWith('blacklist')) {
+      await runBlacklistCheck(type, teamName);
+    } else if (type === 'ip_status_report') {
+      await runIpStatusReport();
+    }
+
+    return NextResponse.json({ success: true, message: resultMessage });
+  } catch (e: any) {
+    console.error('[CRON-CHECK] GET Error:', e);
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
+
 // Also add endpoint to sync team data from frontend
 export async function PUT(request: NextRequest) {
   try {
