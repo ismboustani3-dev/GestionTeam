@@ -1039,3 +1039,72 @@
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* More IPs Badge and Hover Tooltip */
+.more-ips-badge-container {
+  position: relative;
+  display: inline-block;
+  margin-top: 0.35rem;
+}
+
+.more-ips-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: fit-content;
+}
+
+.more-ips-badge:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.more-ips-tooltip {
+  visibility: hidden;
+  position: absolute;
+  bottom: 130%;
+  left: 0;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.75rem;
+  font-family: inherit;
+  white-space: nowrap;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  transform: translateY(4px);
+  pointer-events: none;
+}
+
+.more-ips-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 20px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #1e293b transparent transparent transparent;
+}
+
+.more-ips-badge-container:hover .more-ips-tooltip {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+

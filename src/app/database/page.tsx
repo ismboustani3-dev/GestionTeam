@@ -1510,7 +1510,35 @@ export default function DatabasePage() {
                         {s.status === 'tocancel' && <span style={{ fontSize: '0.75rem', color: '#f97316', fontWeight: 'bold' }}>tocancel</span>}
                       </div>
                     </td>
-                    <td className="td-ip">{s.mainIp}</td>
+                    <td className="td-ip">
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span>{s.mainIp}</span>
+                        {(() => {
+                          const extraIps = s.ipDomains ? s.ipDomains.filter(item => item.ip !== s.mainIp) : [];
+                          const extraCount = extraIps.length > 0 ? extraIps.length : (s.nbrIps && s.nbrIps > 1 ? s.nbrIps - 1 : 0);
+                          if (extraCount > 0) {
+                            return (
+                              <div className="more-ips-badge-container">
+                                <span className="more-ips-badge">+{extraCount} more</span>
+                                <div className="more-ips-tooltip">
+                                  {extraIps.length > 0 ? (
+                                    extraIps.map((item, idx) => (
+                                      <div key={idx} style={{ padding: '0.1rem 0', display: 'flex', gap: '0.5rem', justifyContent: 'space-between' }}>
+                                        <strong style={{ color: '#38bdf8' }}>{item.ip}</strong>
+                                        {item.domain && <span style={{ color: '#94a3b8' }}>({item.domain})</span>}
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <span style={{ color: '#94a3b8' }}>IP details not mapped</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    </td>
                     <td className="td-date">{s.dateEntre}</td>
                     <td className="td-date" style={{ color: '#94a3b8' }}>{getServerAge(s.dateEntre)}</td>
                     <td>
