@@ -336,6 +336,7 @@ export default function DatabasePage() {
   const [selectedReportMonth, setSelectedReportMonth] = useState<string>('');
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [activeReportTab, setActiveReportTab] = useState<'all' | 'new' | 'existing' | 'tocancel' | 'deleted'>('all');
+  const [quickFilter, setQuickFilter] = useState<'all' | 'active' | 'tocancel' | 'new' | 'deleted'>('all');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -353,9 +354,26 @@ export default function DatabasePage() {
   
   // All servers not deleted
   const activeServers = currentTeam?.servers.filter(s => s.status !== 'deleted') || [];
+
+  const displayServersList = React.useMemo(() => {
+    const all = currentTeam?.servers || [];
+    if (quickFilter === 'deleted') {
+      return all.filter(s => s.status === 'deleted' && s.dateSortie && isCurrentMonth(s.dateSortie));
+    }
+    if (quickFilter === 'active') {
+      return activeServers.filter(s => s.status === 'active');
+    }
+    if (quickFilter === 'tocancel') {
+      return activeServers.filter(s => s.status === 'tocancel');
+    }
+    if (quickFilter === 'new') {
+      return activeServers.filter(s => s.dateEntre && isCurrentMonth(s.dateEntre));
+    }
+    return activeServers;
+  }, [currentTeam, activeServers, quickFilter]);
   
   // Filter search
-  const filteredActiveServers = activeServers.filter(s => {
+  const filteredActiveServers = displayServersList.filter(s => {
     if (!searchTerm) return true;
     
     // Split search terms by spaces, commas, semicolons, or newlines
@@ -979,7 +997,7 @@ export default function DatabasePage() {
                 <button
                   key={team.name}
                   className={`db-tab ${activeTeam === team.name ? 'active' : ''}`}
-                  onClick={() => { setActiveTeam(team.name); setSearchTerm(''); }}
+                  onClick={() => { setActiveTeam(team.name); setSearchTerm(''); setQuickFilter('all'); }}
                 >
                   <span className="tab-name">👥 {team.name}</span>
                   <div className="team-counters">
@@ -1464,13 +1482,52 @@ export default function DatabasePage() {
       {/* --- Main Active Table --- */}
       <div className="team-board-container animate-fade-in">
         <div className="board-header">
-          <div className="board-header-left">
+          <div className="board-header-left" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <h2>{activeTeam}</h2>
+            {quickFilter !== 'all' && (
+              <button 
+                onClick={() => setQuickFilter('all')}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '20px',
+                  color: '#94a3b8',
+                  padding: '0.25rem 0.75rem',
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  transition: 'all 0.2s',
+                  lineHeight: 1
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'}
+              >
+                Clear Filter ({quickFilter === 'deleted' ? 'MONTH DEL' : quickFilter.toUpperCase()}) ✕
+              </button>
+            )}
           </div>
-          <div className="board-header-right">
+          <div className="board-header-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
             <button 
               className="minimal-btn" 
-              style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', marginRight: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.8rem' }}
+              style={{ color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.8rem' }}
+              title="Copy the names of all currently filtered servers in the table"
+              onClick={() => {
+                if (sortedServers.length === 0) {
+                  alert('No filtered servers to copy!');
+                  return;
+                }
+                const names = sortedServers.map(s => s.serverName).filter(Boolean).join('\n');
+                navigator.clipboard.writeText(names);
+                alert(`Copied ${sortedServers.length} filtered server name(s) to clipboard!`);
+              }}
+            >
+              📋 Copy Filtered ({sortedServers.length})
+            </button>
+            <button 
+              className="minimal-btn" 
+              style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.8rem' }}
               title="Copy the names of all RED urgent servers"
               onClick={() => {
                 const redServers = activeServers.filter(s => s.dateSortie && getNoticeColorClass(s.dateSortie) === 'urgent');
@@ -1483,12 +1540,84 @@ export default function DatabasePage() {
                 alert(`Copied ${redServers.length} urgent server(s) to clipboard!`);
               }}
             >
-              📋 Copy Urgent Servers
+              📋 Copy Urgent
             </button>
-            <span className="stat-active">ACTIVE: <strong>{activeServers.filter(s => s.status === 'active').length} Servers</strong></span>
-            <span className="stat-orange">TO CANCEL: <strong>{activeServers.filter(s => s.status === 'tocancel').length} Servers</strong></span>
-            <span className="stat-new">NEW SERVER ADD: <strong>{monthNewCount} {currentMonthName}</strong></span>
-            <span className="stat-del">MONTH DEL: <strong>{monthDelCount}</strong></span>
+            <span 
+              className="stat-active"
+              style={{
+                cursor: 'pointer',
+                padding: '0.3rem 0.6rem',
+                borderRadius: '8px',
+                border: '1px solid',
+                borderColor: quickFilter === 'active' ? 'rgba(52, 211, 153, 0.4)' : 'transparent',
+                background: quickFilter === 'active' ? 'rgba(52, 211, 153, 0.1)' : 'transparent',
+                transition: 'all 0.2s',
+                display: 'inline-flex',
+                alignItems: 'center',
+                userSelect: 'none'
+              }}
+              onClick={() => setQuickFilter(prev => prev === 'active' ? 'all' : 'active')}
+              title={quickFilter === 'active' ? 'Click to show all servers' : 'Click to filter only active servers'}
+            >
+              ACTIVE: <strong>{activeServers.filter(s => s.status === 'active').length} Servers</strong>
+            </span>
+            <span 
+              className="stat-orange"
+              style={{
+                cursor: 'pointer',
+                padding: '0.3rem 0.6rem',
+                borderRadius: '8px',
+                border: '1px solid',
+                borderColor: quickFilter === 'tocancel' ? 'rgba(249, 115, 22, 0.4)' : 'transparent',
+                background: quickFilter === 'tocancel' ? 'rgba(249, 115, 22, 0.1)' : 'transparent',
+                transition: 'all 0.2s',
+                display: 'inline-flex',
+                alignItems: 'center',
+                userSelect: 'none'
+              }}
+              onClick={() => setQuickFilter(prev => prev === 'tocancel' ? 'all' : 'tocancel')}
+              title={quickFilter === 'tocancel' ? 'Click to show all servers' : 'Click to filter only servers to cancel'}
+            >
+              TO CANCEL: <strong>{activeServers.filter(s => s.status === 'tocancel').length} Servers</strong>
+            </span>
+            <span 
+              className="stat-new"
+              style={{
+                cursor: 'pointer',
+                padding: '0.3rem 0.6rem',
+                borderRadius: '8px',
+                border: '1px solid',
+                borderColor: quickFilter === 'new' ? 'rgba(96, 165, 250, 0.4)' : 'transparent',
+                background: quickFilter === 'new' ? 'rgba(96, 165, 250, 0.1)' : 'transparent',
+                transition: 'all 0.2s',
+                display: 'inline-flex',
+                alignItems: 'center',
+                userSelect: 'none'
+              }}
+              onClick={() => setQuickFilter(prev => prev === 'new' ? 'all' : 'new')}
+              title={quickFilter === 'new' ? 'Click to show all servers' : 'Click to filter only servers added in the current month'}
+            >
+              NEW SERVER ADD: <strong>{monthNewCount} {currentMonthName}</strong>
+            </span>
+            <span 
+              className="stat-del"
+              style={{
+                cursor: 'pointer',
+                padding: '0.3rem 0.6rem',
+                borderRadius: '8px',
+                border: '1px solid',
+                borderColor: quickFilter === 'deleted' ? 'rgba(248, 113, 113, 0.4)' : 'transparent',
+                background: quickFilter === 'deleted' ? 'rgba(248, 113, 113, 0.1)' : 'transparent',
+                transition: 'all 0.2s',
+                display: 'inline-flex',
+                alignItems: 'center',
+                userSelect: 'none'
+              }}
+              onClick={() => setQuickFilter(prev => prev === 'deleted' ? 'all' : 'deleted')}
+              title={quickFilter === 'deleted' ? 'Click to show all servers' : 'Click to view only servers deleted in the current month'}
+            >
+              MONTH DEL: <strong>{monthDelCount}</strong>
+            </span>
           </div>
         </div>
 
@@ -1517,12 +1646,20 @@ export default function DatabasePage() {
             <tbody>
               {sortedServers.length > 0 ? (
                 sortedServers.map((s) => (
-                  <tr key={s.id} style={s.status === 'tocancel' ? { background: 'rgba(249, 115, 22, 0.08)' } : undefined}>
+                  <tr key={s.id} style={
+                    s.status === 'deleted' ? { background: 'rgba(248, 113, 113, 0.06)', opacity: 0.85 } :
+                    (s.status === 'tocancel' ? { background: 'rgba(249, 115, 22, 0.08)' } : undefined)
+                  }>
                     <td className="td-name">
                       <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.4rem' }}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ color: s.status === 'tocancel' ? '#f97316' : undefined, fontWeight: 600 }}>{s.serverName || '—'}</span>
+                          <span style={{ 
+                            color: s.status === 'tocancel' ? '#f97316' : (s.status === 'deleted' ? '#f87171' : undefined), 
+                            textDecoration: s.status === 'deleted' ? 'line-through' : undefined,
+                            fontWeight: 600 
+                          }}>{s.serverName || '—'}</span>
                           {s.status === 'tocancel' && <span style={{ fontSize: '0.75rem', color: '#f97316', fontWeight: 'bold' }}>tocancel</span>}
+                          {s.status === 'deleted' && <span style={{ fontSize: '0.75rem', color: '#f87171', fontWeight: 'bold' }}>deleted</span>}
                         </div>
                         {s.serverName && (
                           <button
@@ -1594,6 +1731,11 @@ export default function DatabasePage() {
                           <>
                             <button className="minimal-btn" style={{ borderColor: '#22c55e', color: '#22c55e' }} title="Keep Server" onClick={() => handleKeepServer(s.id)}>Keep</button>
                             <button className="minimal-btn danger" title="Delete Definitive" onClick={() => handleDeleteToHistory(s.id)}>Delete Definitive</button>
+                          </>
+                        ) : s.status === 'deleted' ? (
+                          <>
+                            <button className="minimal-btn" style={{ borderColor: '#22c55e', color: '#22c55e' }} title="Restore Server" onClick={() => handleKeepServer(s.id)}>Restore</button>
+                            <button className="minimal-btn danger" title="Permanent Delete" onClick={() => handlePermanentDelete(s.id)}>Perm Del</button>
                           </>
                         ) : (
                           <>

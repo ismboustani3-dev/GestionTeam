@@ -1,26 +1,26 @@
 [
   {
-    "enabled": true,
-    "cronExpression": "00 09 * * *",
-    "lastRun": "2026-06-11T08:00:13.313Z",
     "type": "blacklist_both",
+    "cronExpression": "00 09 * * *",
+    "id": "sched_1780508038697",
+    "lastRun": "2026-06-12T08:00:12.181Z",
+    "teamName": "all",
     "name": "check blacklist",
-    "teamName": "all",
-    "id": "sched_1780508038697"
+    "enabled": true
   },
   {
-    "type": "payment_notice",
-    "cronExpression": "0 10 * * *",
     "enabled": true,
+    "name": "Daily Payment Notice",
+    "cronExpression": "0 10 * * *",
+    "type": "payment_notice",
     "teamName": "all",
-    "id": "sched_payment_notice",
-    "name": "Daily Payment Notice"
+    "id": "sched_payment_notice"
   },
   {
-    "id": "sched_1781199013440",
-    "name": "IP Status Report (00:00)",
-    "type": "ip_status_report",
-    "cronExpression": "00 00 * * *",
+    "id": "sched_1781307704714",
+    "name": "Auto SPF 09:00",
+    "type": "spf",
+    "cronExpression": "0 9 * * *",
     "enabled": true,
     "teamName": "all"
   }

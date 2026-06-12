@@ -392,10 +392,11 @@ export default function SummaryPage() {
             <td style={{ color: '#60a5fa', fontWeight: 600, textAlign: 'center' }}>{newCount}</td>
             <td style={{ color: '#f97316', fontWeight: 600, textAlign: 'center' }}>{toCancelCount}</td>
             <td style={{ color: '#f87171', fontWeight: 600, textAlign: 'center' }}>{cancelCount}</td>
+            <td style={{ color: '#38bdf8', fontWeight: 'bold', textAlign: 'center', background: 'rgba(56, 189, 248, 0.04)' }}>{activeCount + newCount + toCancelCount + cancelCount}</td>
           </tr>
           {isExpanded && (
             <tr>
-              <td colSpan={5} style={{ padding: 0, border: 'none' }}>
+              <td colSpan={6} style={{ padding: 0, border: 'none' }}>
                 {renderTeamDetailedReport(team, reportMonthNum, month)}
               </td>
             </tr>
@@ -423,6 +424,7 @@ export default function SummaryPage() {
                 <th style={{ background: 'rgba(255,255,255,0.03)', textAlign: 'center' }}>New Servers</th>
                 <th style={{ background: 'rgba(255,255,255,0.03)', textAlign: 'center' }}>Cancel Declared</th>
                 <th style={{ background: 'rgba(255,255,255,0.03)', textAlign: 'center' }}>Cancelled Definitive</th>
+                <th style={{ background: 'rgba(255,255,255,0.05)', textAlign: 'center', fontWeight: 'bold', color: '#38bdf8' }}>TOTAL</th>
               </tr>
             </thead>
             <tbody>
@@ -434,6 +436,7 @@ export default function SummaryPage() {
                 <td style={{ color: '#60a5fa', fontWeight: 'bold', textAlign: 'center' }}>{totalNew}</td>
                 <td style={{ color: '#f97316', fontWeight: 'bold', textAlign: 'center' }}>{totalToCancel}</td>
                 <td style={{ color: '#f87171', fontWeight: 'bold', textAlign: 'center' }}>{totalDeleted}</td>
+                <td style={{ color: '#38bdf8', fontWeight: 'extrabold', textAlign: 'center', background: 'rgba(56, 189, 248, 0.06)' }}>{totalProd + totalNew + totalToCancel + totalDeleted}</td>
               </tr>
             </tbody>
           </table>
