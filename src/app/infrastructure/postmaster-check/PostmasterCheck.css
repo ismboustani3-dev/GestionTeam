@@ -1,0 +1,330 @@
+.postmaster-check-container {
+  padding: 1.5rem;
+  color: #e2e8f0;
+  width: 100%;
+  margin: 0;
+}
+
+.postmaster-check-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.postmaster-check-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #10b981, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.postmaster-check-header p {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+/* Team Switcher Tabs */
+.postmaster-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.5rem;
+}
+
+.postmaster-tab {
+  padding: 0.8rem 1.5rem;
+  font-weight: 600;
+  color: #94a3b8;
+  border-radius: 12px 12px 0 0;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.postmaster-tab:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.postmaster-tab.active {
+  color: #fff;
+  background: #10b981;
+  box-shadow: 0 -4px 15px rgba(16, 185, 129, 0.2);
+}
+
+.tab-count-badge {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.1rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.postmaster-tab.active .tab-count-badge {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Filters & Actions row */
+.filters-actions-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.search-filters-pane {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.search-filters-pane input.search {
+  padding: 0.5rem 0.8rem;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  width: 240px;
+}
+
+.search-filters-pane input.search:focus {
+  border-color: #10b981;
+  outline: none;
+}
+
+.filter-select-postmaster {
+  padding: 0.5rem 0.8rem;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.filter-select-postmaster:focus {
+  border-color: #10b981;
+}
+
+.postmaster-check-container select option {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+.actions-pane {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.btn-postmaster-action {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid transparent;
+  color: #fff;
+}
+
+.btn-postmaster-action:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-postmaster-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-postmaster-action.primary {
+  background: #10b981;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.btn-postmaster-action.secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+}
+
+.btn-postmaster-action.secondary:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Progress bar check indicator */
+.progress-checking-container {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.progress-checking-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.progress-checking-bar {
+  background: rgba(255, 255, 255, 0.05);
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-checking-fill {
+  background: linear-gradient(90deg, #10b981, #3b82f6);
+  height: 100%;
+  transition: width 0.2s ease;
+}
+
+/* Postmaster Table design */
+.postmaster-table-container {
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  max-height: calc(100vh - 290px);
+}
+
+.postmaster-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.postmaster-table th {
+  padding: 1rem 0.8rem;
+  font-weight: 600;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  background: rgba(30, 41, 59, 0.6);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.postmaster-table td {
+  padding: 0.8rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+  vertical-align: middle;
+  font-size: 0.9rem;
+}
+
+.postmaster-table tr {
+  transition: background-color 0.2s ease;
+}
+
+.postmaster-table tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.server-cell {
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.domain-cell {
+  font-family: monospace;
+  color: #e2e8f0;
+}
+
+.details-cell {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #64748b;
+  max-width: 380px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.details-cell:hover {
+  white-space: normal;
+  word-break: break-all;
+  color: #94a3b8;
+}
+
+.date-cell {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Badges */
+.badge-postmaster {
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+.badge-postmaster.ok {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-postmaster.fail {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge-postmaster.pending {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.toast-postmaster {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #d1fae5;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  z-index: 1100;
+  font-weight: 600;
+  font-size: 0.9rem;
+  backdrop-filter: blur(8px);
+  animation: slideUp 0.3s ease-out;
+}

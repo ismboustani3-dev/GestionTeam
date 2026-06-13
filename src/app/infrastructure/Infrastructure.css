@@ -849,6 +849,29 @@
   box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
 }
 
+/* Postmaster Card Styles */
+.infra-hub-card.postmaster:hover::before {
+  background: linear-gradient(90deg, #10b981, #3b82f6);
+}
+
+.infra-hub-card.postmaster .infra-hub-icon-wrapper {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.infra-hub-card.postmaster .infra-hub-btn {
+  background: rgba(16, 185, 129, 0.1);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.infra-hub-card.postmaster:hover .infra-hub-btn {
+  background: #10b981;
+  color: #fff;
+  border-color: #10b981;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
 /* Summary Stats Table */
 .infra-summary-section {
   margin-top: 3.5rem;

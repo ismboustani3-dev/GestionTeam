@@ -19,6 +19,9 @@ interface TeamStats {
   vmtaOk: number;
   vmtaFail: number;
   vmtaPending: number;
+  postmasterOk: number;
+  postmasterFail: number;
+  postmasterPending: number;
 }
 
 interface ScheduleItem {
@@ -90,10 +93,27 @@ export default function InfrastructurePage() {
       let spfOk = 0, spfFail = 0, spfPending = 0;
       let rdnsOk = 0, rdnsFail = 0, rdnsPending = 0;
       let vmtaOk = 0, vmtaFail = 0, vmtaPending = 0;
+      let postmasterOk = 0, postmasterFail = 0, postmasterPending = 0;
+      const seenDomains = new Set<string>();
 
       dbServers.forEach((server: any) => {
         const ipDomains = getUniqueIpDomains(server.ipDomains);
         
+        // Count unique domains postmaster stats
+        ipDomains.forEach((d: any) => {
+          if (d.domain && d.domain !== 'No Domain Mapped' && d.domain !== 'No Domain' && !seenDomains.has(d.domain)) {
+            seenDomains.add(d.domain);
+            const saved = server.postmasterDetails?.[d.domain];
+            if (saved) {
+              if (saved.status === 'OK') postmasterOk++;
+              else if (saved.status === 'FAIL') postmasterFail++;
+              else postmasterPending++;
+            } else {
+              postmasterPending++;
+            }
+          }
+        });
+
         const processIp = (ip: string, domain: string) => {
           totalIps++;
 
@@ -157,7 +177,10 @@ export default function InfrastructurePage() {
         rdnsPending,
         vmtaOk,
         vmtaFail,
-        vmtaPending
+        vmtaPending,
+        postmasterOk,
+        postmasterFail,
+        postmasterPending
       };
     });
   }, [teams]);
@@ -282,6 +305,37 @@ export default function InfrastructurePage() {
       });
     } else {
       showToast(`No VMTA (${status}) items found for ${teamName}.`);
+    }
+  };
+
+  const copyPostmasterData = (teamName: string, status: 'OK' | 'FAIL' | 'Pending') => {
+    const team = teams.find(t => t.name === teamName);
+    const dbServers = team?.servers?.filter((s: any) => s.status !== 'deleted') || [];
+    const items: string[] = [];
+    const seenDomains = new Set<string>();
+
+    dbServers.forEach((server: any) => {
+      const ipDomains = getUniqueIpDomains(server.ipDomains);
+      ipDomains.forEach((d: any) => {
+        if (d.domain && d.domain !== 'No Domain Mapped' && d.domain !== 'No Domain' && !seenDomains.has(d.domain)) {
+          seenDomains.add(d.domain);
+          const saved = server.postmasterDetails?.[d.domain];
+          const itemStatus = saved ? saved.status : 'Pending';
+          if (itemStatus === status) {
+            items.push(`${server.serverName}\t${d.domain}\t${saved?.reason || 'Pending verification check'}`);
+          }
+        }
+      });
+    });
+
+    if (items.length > 0) {
+      const header = 'Server Name\tDomain\tDetails';
+      const text = `${header}\n${items.join('\n')}`;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(`📋 Copied ${items.length} Postmaster (${status}) items for ${teamName}!`);
+      });
+    } else {
+      showToast(`No Postmaster (${status}) items found for ${teamName}.`);
     }
   };
 
@@ -722,7 +776,119 @@ export default function InfrastructurePage() {
         })
       }).catch(err => console.error('Telegram notification error:', err));
 
-      // 4. SAVE RESULTS TO FIREBASE & STATE
+      // 4. POSTMASTER CHECK
+      setProgressMessage('📬 Checking Postmaster...');
+      currentTeams = await Promise.all(currentTeams.map(async (team) => {
+        const activeServers = team.servers?.filter((s: any) => s.status !== 'deleted') || [];
+        if (activeServers.length === 0) return team;
+
+        const seenDomains = new Set<string>();
+        const domainsToRequest: string[] = [];
+        activeServers.forEach((s: any) => {
+          const ipDomains = getUniqueIpDomains(s.ipDomains);
+          ipDomains.forEach((d: any) => {
+            if (d.domain && d.domain !== 'No Domain Mapped' && d.domain !== 'No Domain' && !seenDomains.has(d.domain)) {
+              seenDomains.add(d.domain);
+              domainsToRequest.push(d.domain);
+            }
+          });
+        });
+
+        if (domainsToRequest.length === 0) return team;
+
+        setProgressMessage(`📬 Checking Postmaster (${team.name} Team)...`);
+        const response = await fetch('/api/infrastructure/postmaster-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ domains: domainsToRequest })
+        });
+        const data = await response.json();
+
+        if (data.results) {
+          const todayStrPostmaster = new Date().toLocaleDateString('fr-FR');
+          return {
+            ...team,
+            servers: team.servers.map((s: any) => {
+              if (s.status === 'deleted') return s;
+              const newPostmasterDetails = { ...(s.postmasterDetails || {}) };
+              let hasUpdates = false;
+              
+              const ipDomains = getUniqueIpDomains(s.ipDomains);
+              ipDomains.forEach((d: any) => {
+                if (!d.domain) return;
+                const lookupResult = data.results[d.domain];
+                if (lookupResult) {
+                  newPostmasterDetails[d.domain] = {
+                    status: lookupResult.status,
+                    reason: lookupResult.reason || '',
+                    date: todayStrPostmaster
+                  };
+                  hasUpdates = true;
+                }
+              });
+
+              if (hasUpdates) {
+                return { ...s, postmasterDetails: newPostmasterDetails };
+              }
+              return s;
+            })
+          };
+        }
+        return team;
+      }));
+
+      // Send Telegram Postmaster report
+      const failedPostmasterItems: any[] = [];
+      currentTeams.forEach(team => {
+        const activeServers = (team.servers || []).filter((s: any) => s.status !== 'deleted');
+        activeServers.forEach((server: any) => {
+          const uniqueDomains = getUniqueIpDomains(server.ipDomains);
+          uniqueDomains.forEach((d: any) => {
+            if (!d.domain) return;
+            const saved = server.postmasterDetails?.[d.domain];
+            if (saved && saved.status === 'FAIL') {
+              failedPostmasterItems.push({
+                teamName: team.name,
+                serverName: server.serverName,
+                domain: d.domain,
+                reason: saved.reason || 'Verification failed'
+              });
+            }
+          });
+        });
+      });
+
+      let telegramPostmasterMessage = '';
+      const nowStrPostmaster = new Date().toLocaleString('en-US');
+      if (failedPostmasterItems.length > 0) {
+        telegramPostmasterMessage = `🔍 <b>Postmaster check Failures — ALL TEAMS</b>\nStatus: ⚠️ ISSUES DETECTED\n📅 ${nowStrPostmaster}\n\n`;
+        const groupedByTeamPostmaster = failedPostmasterItems.reduce((acc, item) => {
+          if (!acc[item.teamName]) acc[item.teamName] = [];
+          acc[item.teamName].push(item);
+          return acc;
+        }, {} as Record<string, any[]>);
+
+        Object.entries(groupedByTeamPostmaster).forEach(([teamName, items]) => {
+          telegramPostmasterMessage += `🏢 <b>Team ${teamName}</b>\n`;
+          (items as any[]).forEach((f: any) => {
+            telegramPostmasterMessage += `• <b>${f.serverName}</b>\n  Domain: <code>${f.domain}</code>\n  Result: <i>${f.reason}</i>\n\n`;
+          });
+        });
+      } else {
+        telegramPostmasterMessage = `✅ <b>Postmaster check PASSED — ALL TEAMS</b>\n📅 ${nowStrPostmaster}\n\nAll domains postmaster checks successfully validated across all teams! 🎉`;
+      }
+
+      fetch('/api/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: telegramPostmasterMessage,
+          chatId: '-1003727951074',
+          threadId: 43
+        })
+      }).catch(err => console.error('Failed to send Telegram postmaster notice:', err));
+
+      // 5. SAVE RESULTS TO FIREBASE & STATE
       setProgressMessage('💾 Saving results...');
       await saveTeamsToFirebase(currentTeams);
       setTeams(currentTeams);
@@ -991,6 +1157,22 @@ export default function InfrastructurePage() {
             Open VMTA Dashboard ➔
           </Link>
         </div>
+
+        {/* Postmaster Card */}
+        <div className="infra-hub-card postmaster">
+          <div>
+            <div className="infra-hub-icon-wrapper">
+              📬
+            </div>
+            <h3>Postmaster Auditor</h3>
+            <p>
+              Verify that domains have a valid and deliverable <code>postmaster@domain</code> mailbox to ensure compliance with RFC deliverability standards.
+            </p>
+          </div>
+          <Link href="/infrastructure/postmaster-check" className="infra-hub-btn">
+            Open Postmaster Dashboard ➔
+          </Link>
+        </div>
       </div>
 
       {/* Summary stats dashboard table */}
@@ -1018,6 +1200,7 @@ export default function InfrastructurePage() {
                   <th>SPF Checks</th>
                   <th>rDNS Checks</th>
                   <th>VMTA / DKIM</th>
+                  <th>Postmaster</th>
                 </tr>
               </thead>
               <tbody>
@@ -1115,6 +1298,37 @@ export default function InfrastructurePage() {
                             onClick={() => copyVmtaData(s.teamName, 'Pending')}
                           >
                             ⏳ {s.vmtaPending}
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
+
+                    {/* Postmaster stats */}
+                    <td>
+                      <div className="stat-pill-group">
+                        <span 
+                          className="stat-pill ok" 
+                          title="Click to copy OK Postmaster checks"
+                          onClick={() => copyPostmasterData(s.teamName, 'OK')}
+                        >
+                          ✓ {s.postmasterOk}
+                        </span>
+                        {s.postmasterFail > 0 ? (
+                          <span 
+                            className="stat-pill fail" 
+                            title="Click to copy Failed Postmaster checks"
+                            onClick={() => copyPostmasterData(s.teamName, 'FAIL')}
+                          >
+                            ✗ {s.postmasterFail}
+                          </span>
+                        ) : null}
+                        {s.postmasterPending > 0 ? (
+                          <span 
+                            className="stat-pill pending" 
+                            title="Click to copy Pending Postmaster checks"
+                            onClick={() => copyPostmasterData(s.teamName, 'Pending')}
+                          >
+                            ⏳ {s.postmasterPending}
                           </span>
                         ) : null}
                       </div>
