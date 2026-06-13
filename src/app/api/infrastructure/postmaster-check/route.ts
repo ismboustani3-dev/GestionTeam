@@ -114,7 +114,11 @@ export async function POST(request: NextRequest) {
             smtpCheck.reason?.includes('timeout') || 
             smtpCheck.reason?.includes('ECONNREFUSED') || 
             smtpCheck.reason?.includes('EHOSTUNREACH') ||
-            smtpCheck.reason?.includes('ENETUNREACH')
+            smtpCheck.reason?.includes('ENETUNREACH') ||
+            smtpCheck.reason?.includes('EACCES') ||
+            smtpCheck.reason?.includes('EPERM') ||
+            smtpCheck.reason?.includes('EADDRNOTAVAIL') ||
+            smtpCheck.reason?.includes('Connection error')
           ) {
             results[key] = { status: 'OK', reason: `MX Active (${primaryMx}), SMTP verification skipped (Port 25 blocked by host)` };
           } else {
