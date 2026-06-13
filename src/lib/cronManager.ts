@@ -40,7 +40,8 @@ import path from 'path';
 
 async function saveSchedules(schedules: ScheduleConfig[]) {
   try {
-    await setDoc(SCHEDULE_REF, { schedules });
+    const cleaned = JSON.parse(JSON.stringify(schedules));
+    await setDoc(SCHEDULE_REF, { schedules: cleaned });
   } catch (e) {
     console.error('Failed to save schedules:', e);
   }
@@ -214,6 +215,16 @@ export async function addSchedule(schedule: ScheduleConfig): Promise<ScheduleCon
   schedules.push(schedule);
   await saveSchedules(schedules);
   if (schedule.enabled) startTask(schedule);
+  return schedules;
+}
+
+export async function addSchedules(schedulesToAdd: ScheduleConfig[]): Promise<ScheduleConfig[]> {
+  const schedules = await loadSchedules();
+  schedules.push(...schedulesToAdd);
+  await saveSchedules(schedules);
+  schedulesToAdd.forEach(schedule => {
+    if (schedule.enabled) startTask(schedule);
+  });
   return schedules;
 }
 

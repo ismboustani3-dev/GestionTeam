@@ -100,17 +100,18 @@ export default function VmtaCheckPage() {
 
       if (newScheduleTime2) {
         const [h2, m2] = newScheduleTime2.split(':');
-        await fetch('/api/schedule', {
+        const res = await fetch('/api/schedule', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'add', name: `${name} (1)`, type: 'vmta', cronExpression: `${parseInt(m1)} ${parseInt(h1)} * * ${dayStr}`, teamName: newScheduleTeam })
+          body: JSON.stringify({
+            action: 'add',
+            schedules: [
+              { name: `${name} (1)`, type: 'vmta', cronExpression: `${parseInt(m1)} ${parseInt(h1)} * * ${dayStr}`, teamName: newScheduleTeam },
+              { name: `${name} (2)`, type: 'vmta', cronExpression: `${parseInt(m2)} ${parseInt(h2)} * * ${dayStr}`, teamName: newScheduleTeam }
+            ]
+          })
         });
-        const res2 = await fetch('/api/schedule', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'add', name: `${name} (2)`, type: 'vmta', cronExpression: `${parseInt(m2)} ${parseInt(h2)} * * ${dayStr}`, teamName: newScheduleTeam })
-        });
-        const data = await res2.json();
+        const data = await res.json();
         if (data.schedules) setSchedules(data.schedules);
       } else {
         const res = await fetch('/api/schedule', {

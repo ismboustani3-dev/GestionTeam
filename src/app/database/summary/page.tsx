@@ -141,17 +141,18 @@ export default function SummaryPage() {
 
       if (newScheduleTime2) {
         const [h2, m2] = newScheduleTime2.split(':');
-        await fetch('/api/schedule', {
+        const res = await fetch('/api/schedule', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'add', name: `${name} (1)`, type: 'summary_report', cronExpression: `${parseInt(m1)} ${parseInt(h1)} * * ${dayStr}`, teamName: newScheduleTeam })
+          body: JSON.stringify({
+            action: 'add',
+            schedules: [
+              { name: `${name} (1)`, type: 'summary_report', cronExpression: `${parseInt(m1)} ${parseInt(h1)} * * ${dayStr}`, teamName: newScheduleTeam },
+              { name: `${name} (2)`, type: 'summary_report', cronExpression: `${parseInt(m2)} ${parseInt(h2)} * * ${dayStr}`, teamName: newScheduleTeam }
+            ]
+          })
         });
-        const res2 = await fetch('/api/schedule', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'add', name: `${name} (2)`, type: 'summary_report', cronExpression: `${parseInt(m2)} ${parseInt(h2)} * * ${dayStr}`, teamName: newScheduleTeam })
-        });
-        const data = await res2.json();
+        const data = await res.json();
         if (data.schedules) setSchedules(data.schedules);
       } else {
         const res = await fetch('/api/schedule', {
@@ -392,11 +393,13 @@ export default function SummaryPage() {
             <td style={{ color: '#60a5fa', fontWeight: 600, textAlign: 'center' }}>{newCount}</td>
             <td style={{ color: '#f97316', fontWeight: 600, textAlign: 'center' }}>{toCancelCount}</td>
             <td style={{ color: '#f87171', fontWeight: 600, textAlign: 'center' }}>{cancelCount}</td>
+            <td style={{ color: '#10b981', fontWeight: 'bold', textAlign: 'center', background: 'rgba(16, 185, 129, 0.04)' }}>{activeCount + newCount}</td>
+            <td style={{ color: '#ef4444', fontWeight: 'bold', textAlign: 'center', background: 'rgba(239, 68, 68, 0.04)' }}>{toCancelCount + cancelCount}</td>
             <td style={{ color: '#38bdf8', fontWeight: 'bold', textAlign: 'center', background: 'rgba(56, 189, 248, 0.04)' }}>{activeCount + newCount + toCancelCount + cancelCount}</td>
           </tr>
           {isExpanded && (
             <tr>
-              <td colSpan={6} style={{ padding: 0, border: 'none' }}>
+              <td colSpan={8} style={{ padding: 0, border: 'none' }}>
                 {renderTeamDetailedReport(team, reportMonthNum, month)}
               </td>
             </tr>
@@ -424,6 +427,8 @@ export default function SummaryPage() {
                 <th style={{ background: 'rgba(255,255,255,0.03)', textAlign: 'center' }}>New Servers</th>
                 <th style={{ background: 'rgba(255,255,255,0.03)', textAlign: 'center' }}>Cancel Declared</th>
                 <th style={{ background: 'rgba(255,255,255,0.03)', textAlign: 'center' }}>Cancelled Definitive</th>
+                <th style={{ background: 'rgba(255,255,255,0.03)', textAlign: 'center', color: '#10b981', fontWeight: 'bold' }}>Total Server</th>
+                <th style={{ background: 'rgba(255,255,255,0.03)', textAlign: 'center', color: '#ef4444', fontWeight: 'bold' }}>Total Cancel</th>
                 <th style={{ background: 'rgba(255,255,255,0.05)', textAlign: 'center', fontWeight: 'bold', color: '#38bdf8' }}>TOTAL</th>
               </tr>
             </thead>
@@ -436,6 +441,8 @@ export default function SummaryPage() {
                 <td style={{ color: '#60a5fa', fontWeight: 'bold', textAlign: 'center' }}>{totalNew}</td>
                 <td style={{ color: '#f97316', fontWeight: 'bold', textAlign: 'center' }}>{totalToCancel}</td>
                 <td style={{ color: '#f87171', fontWeight: 'bold', textAlign: 'center' }}>{totalDeleted}</td>
+                <td style={{ color: '#10b981', fontWeight: 'extrabold', textAlign: 'center', background: 'rgba(16, 185, 129, 0.06)' }}>{totalProd + totalNew}</td>
+                <td style={{ color: '#ef4444', fontWeight: 'extrabold', textAlign: 'center', background: 'rgba(239, 68, 68, 0.06)' }}>{totalToCancel + totalDeleted}</td>
                 <td style={{ color: '#38bdf8', fontWeight: 'extrabold', textAlign: 'center', background: 'rgba(56, 189, 248, 0.06)' }}>{totalProd + totalNew + totalToCancel + totalDeleted}</td>
               </tr>
             </tbody>

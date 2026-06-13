@@ -3,6 +3,7 @@ import {
   initializeScheduler,
   getSchedules,
   addSchedule,
+  addSchedules,
   updateSchedule,
   deleteSchedule,
   ScheduleConfig
@@ -22,19 +23,38 @@ export async function POST(request: NextRequest) {
     const { action } = body;
 
     if (action === 'add') {
-      const schedule: ScheduleConfig = {
-        id: `sched_${Date.now()}`,
-        name: body.name || 'Auto Check',
-        type: body.type || 'both',
-        cronExpression: body.cronExpression,
-        enabled: body.enabled !== false,
-        teamName: body.teamName || 'all',
-        imapEmail: body.imapEmail,
-        imapPassword: body.imapPassword,
-        inboxLabel: body.inboxLabel
-      };
-      const schedules = await addSchedule(schedule);
-      return NextResponse.json({ schedules, added: schedule });
+      if (body.schedules && Array.isArray(body.schedules)) {
+        const schedulesToAdd: ScheduleConfig[] = body.schedules.map((item: any, idx: number) => {
+          const s: ScheduleConfig = {
+            id: `sched_${Date.now()}_${idx}_${Math.floor(Math.random() * 1000)}`,
+            name: item.name || 'Auto Check',
+            type: item.type || 'both',
+            cronExpression: item.cronExpression,
+            enabled: item.enabled !== false,
+            teamName: item.teamName || 'all'
+          };
+          if (item.imapEmail !== undefined) s.imapEmail = item.imapEmail;
+          if (item.imapPassword !== undefined) s.imapPassword = item.imapPassword;
+          if (item.inboxLabel !== undefined) s.inboxLabel = item.inboxLabel;
+          return s;
+        });
+        const schedules = await addSchedules(schedulesToAdd);
+        return NextResponse.json({ schedules, added: schedulesToAdd });
+      } else {
+        const schedule: ScheduleConfig = {
+          id: `sched_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+          name: body.name || 'Auto Check',
+          type: body.type || 'both',
+          cronExpression: body.cronExpression,
+          enabled: body.enabled !== false,
+          teamName: body.teamName || 'all'
+        };
+        if (body.imapEmail !== undefined) schedule.imapEmail = body.imapEmail;
+        if (body.imapPassword !== undefined) schedule.imapPassword = body.imapPassword;
+        if (body.inboxLabel !== undefined) schedule.inboxLabel = body.inboxLabel;
+        const schedules = await addSchedule(schedule);
+        return NextResponse.json({ schedules, added: schedule });
+      }
     }
 
     if (action === 'update') {

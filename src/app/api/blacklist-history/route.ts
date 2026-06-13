@@ -1,33 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-
-const DOC_REF = doc(db, 'appData', 'blacklist_history');
-
-async function loadHistory() {
-  try {
-    const snap = await getDoc(DOC_REF);
-    if (snap.exists()) {
-      return snap.data().history || {};
-    }
-  } catch (e) {
-    console.error('Failed to load history from firebase', e);
-  }
-  return {};
-}
-
 import fs from 'fs';
 import path from 'path';
 
-async function saveHistory(history: any) {
+async function loadHistory() {
+  const history: any = {};
   try {
-    await setDoc(DOC_REF, { history });
+    const colRef = collection(db, 'blacklist_history');
+    const querySnapshot = await getDocs(colRef);
+    querySnapshot.forEach((doc) => {
+      history[doc.id] = doc.data().results || {};
+    });
   } catch (e) {
-    console.error('Failed to save history to firebase', e);
+    console.error('Failed to load history from firebase', e);
   }
+
+  // Fallback to local backup file if firebase load returned no history
+  if (Object.keys(history).length === 0) {
+    try {
+      const localPath = path.join(process.cwd(), 'blacklist-history.json');
+      if (fs.existsSync(localPath)) {
+        return JSON.parse(fs.readFileSync(localPath, 'utf8'));
+      }
+    } catch (e) {
+      console.error('Failed to load fallback history from file', e);
+    }
+  }
+
+  return history;
+}
+
+async function saveHistoryForDate(date: string, results: any) {
   try {
-    fs.writeFileSync(path.join(process.cwd(), 'blacklist-history.json'), JSON.stringify(history, null, 2));
-  } catch (e) {}
+    const docRef = doc(db, 'blacklist_history', date);
+    const docSnap = await getDoc(docRef);
+    let existingResults = docSnap.exists() ? (docSnap.data().results || {}) : {};
+    const updatedResults = {
+      ...existingResults,
+      ...results
+    };
+    await setDoc(docRef, { results: updatedResults }, { merge: true });
+  } catch (e) {
+    console.error(`Failed to save history for date ${date} to firebase`, e);
+  }
+
+  // Update local file backup
+  try {
+    const localPath = path.join(process.cwd(), 'blacklist-history.json');
+    let localData: any = {};
+    if (fs.existsSync(localPath)) {
+      try {
+        localData = JSON.parse(fs.readFileSync(localPath, 'utf8'));
+      } catch (err) {}
+    }
+    localData[date] = {
+      ...localData[date],
+      ...results
+    };
+    fs.writeFileSync(localPath, JSON.stringify(localData, null, 2));
+  } catch (e) {
+    console.error('Failed to update local backup file', e);
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -42,15 +76,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing date or results' }, { status: 400 });
     }
 
-    const data = await loadHistory();
-    // Merge new results with existing ones for that date, if any
-    data[date] = {
-      ...data[date],
-      ...results
-    };
+    await saveHistoryForDate(date, results);
+    
+    const docRef = doc(db, 'blacklist_history', date);
+    const docSnap = await getDoc(docRef);
+    const count = docSnap.exists() ? Object.keys(docSnap.data().results || {}).length : Object.keys(results).length;
 
-    await saveHistory(data);
-    return NextResponse.json({ success: true, count: Object.keys(data[date]).length });
+    return NextResponse.json({ success: true, count });
   } catch (e: any) {
     console.error('[BLACKLIST-HISTORY] Error:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });

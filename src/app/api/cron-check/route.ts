@@ -426,7 +426,6 @@ async function runBlacklistCheck(type: string, teamName: string) {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
   
-  // Call the internal blacklist API to reuse its DNS checking logic
   try {
     const response = await fetch(`${baseUrl}/api/blacklist`, {
       method: 'POST',
@@ -436,16 +435,34 @@ async function runBlacklistCheck(type: string, teamName: string) {
     const data = await response.json();
 
     if (data.results) {
-      // Load history data first for yesterday comparison
-      const DOC_REF = doc(db, 'appData', 'blacklist_history');
-      let historyData: any = {};
+      // Load yesterday's history data for comparison
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayKey = yesterday.toLocaleDateString('en-CA'); // reliable YYYY-MM-DD
+      
+      let yesterdayData: any = {};
       try {
-        const snap = await getDoc(DOC_REF);
+        const yesterdayDocRef = doc(db, 'blacklist_history', yesterdayKey);
+        const snap = await getDoc(yesterdayDocRef);
         if (snap.exists()) {
-          historyData = snap.data().history || {};
+          yesterdayData = snap.data().results || snap.data() || {};
+        } else {
+          // Fallback: try local file
+          const localPath = path.join(process.cwd(), 'blacklist-history.json');
+          if (fs.existsSync(localPath)) {
+            const localData = JSON.parse(fs.readFileSync(localPath, 'utf8'));
+            yesterdayData = localData[yesterdayKey] || {};
+          }
         }
       } catch (e) {
-        console.error('[CRON] Failed to load history from Firebase:', e);
+        console.error('[CRON] Failed to load yesterday history from Firebase:', e);
+        try {
+          const localPath = path.join(process.cwd(), 'blacklist-history.json');
+          if (fs.existsSync(localPath)) {
+            const localData = JSON.parse(fs.readFileSync(localPath, 'utf8'));
+            yesterdayData = localData[yesterdayKey] || {};
+          }
+        } catch (err) {}
       }
 
       const teamStats: Record<string, { total: number, sbl: number, css: number, barra: number, dbl: number, clean: number }> = {};
@@ -475,11 +492,6 @@ async function runBlacklistCheck(type: string, teamName: string) {
       });
 
       // Calculate Yesterday's Stats
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayKey = yesterday.toLocaleDateString('en-CA'); // reliable YYYY-MM-DD
-      const yesterdayData = historyData[yesterdayKey] || {};
-
       const yesterdayTeamStats: Record<string, { total: number, sbl: number, css: number, barra: number, dbl: number, clean: number }> = {};
       let yesterdayGlobalTotal = 0;
       let yesterdayGlobalClean = 0;
@@ -613,16 +625,10 @@ async function runBlacklistCheck(type: string, teamName: string) {
 
       // Save to History File automatically
       try {
-        const DOC_REF = doc(db, 'appData', 'blacklist_history');
-        let historyData: any = {};
-        const snap = await getDoc(DOC_REF);
-        if (snap.exists()) {
-          historyData = snap.data().history || {};
-        }
-        
-        // Build resultsMap equivalent for today
         const dateKey = new Date().toISOString().split('T')[0];
-        if (!historyData[dateKey]) historyData[dateKey] = {};
+        const docRef = doc(db, 'blacklist_history', dateKey);
+        const snap = await getDoc(docRef);
+        let todayData = snap.exists() ? (snap.data().results || {}) : {};
         
         data.results.forEach((r: any) => {
           const itemInfo = uniqueItems.find((i: any) => i.ip === r.ip && i.serverName === r.serverName && i.domain === r.domain);
@@ -636,7 +642,7 @@ async function runBlacklistCheck(type: string, teamName: string) {
           const status = activeLists.length > 0 ? 'Listed' : 'Clean';
           
           const uniqueKey = `${itemInfo.serverName}_${itemInfo.ip || 'noip'}_${itemInfo.domain || 'nodomain'}`;
-          historyData[dateKey][uniqueKey] = {
+          todayData[uniqueKey] = {
             serverName: itemInfo.serverName,
             ip: itemInfo.ip,
             domain: itemInfo.domain,
@@ -647,15 +653,27 @@ async function runBlacklistCheck(type: string, teamName: string) {
           };
         });
         
-        await setDoc(DOC_REF, { history: historyData });
+        await setDoc(docRef, { results: todayData });
+
+        // Update local backup file
+        try {
+          const localPath = path.join(process.cwd(), 'blacklist-history.json');
+          let localData: any = {};
+          if (fs.existsSync(localPath)) {
+            try {
+              localData = JSON.parse(fs.readFileSync(localPath, 'utf8'));
+            } catch (err) {}
+          }
+          localData[dateKey] = {
+            ...localData[dateKey],
+            ...todayData
+          };
+          fs.writeFileSync(localPath, JSON.stringify(localData, null, 2));
+        } catch (e) {
+          console.error('[CRON] Failed to update local backup file', e);
+        }
 
         // ── Daily Changes Comparison ──
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayKey = yesterday.toISOString().split('T')[0];
-        const todayData = historyData[dateKey] || {};
-        const yesterdayData = historyData[yesterdayKey] || {};
-
         const newlyClean: string[] = [];
         const newlyListed: string[] = [];
 
