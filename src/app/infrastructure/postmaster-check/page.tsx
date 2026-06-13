@@ -268,6 +268,19 @@ export default function PostmasterCheckPage() {
     }
   };
 
+  // Copy all unique domains as a JS array
+  const copyDomainsForGooglePostmaster = () => {
+    const domainList = Array.from(new Set(postmasterRows.map(r => r.domain)));
+    if (domainList.length > 0) {
+      const arrayString = JSON.stringify(domainList, null, 2);
+      navigator.clipboard.writeText(arrayString).then(() => {
+        showToast(`📋 Copied ${domainList.length} domains as JS Array to clipboard!`);
+      });
+    } else {
+      showToast('No domains found to copy.');
+    }
+  };
+
   return (
     <div className="postmaster-check-container animate-fade-in">
       {/* Header */}
@@ -338,6 +351,13 @@ export default function PostmasterCheckPage() {
         </div>
 
         <div className="actions-pane">
+          <button
+            className="btn-postmaster-action secondary"
+            onClick={copyDomainsForGooglePostmaster}
+            style={{ color: '#c084fc' }}
+          >
+            📋 Copy Domain List
+          </button>
           <button
             className="btn-postmaster-action secondary"
             onClick={() => copyPostmasterData('OK')}
