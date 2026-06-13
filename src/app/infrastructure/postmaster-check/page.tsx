@@ -14,6 +14,7 @@ interface PostmasterRow {
   status: 'OK' | 'FAIL' | 'Pending';
   reason: string;
   date: string;
+  googleSiteVerification?: string;
 }
 
 export default function PostmasterCheckPage() {
@@ -94,7 +95,8 @@ export default function PostmasterCheckPage() {
           domain: domain,
           status: saved?.status || 'Pending',
           reason: saved?.reason || 'Pending verification check',
-          date: saved?.date || '—'
+          date: saved?.date || '—',
+          googleSiteVerification: saved?.googleSiteVerification || ''
         });
       };
 
@@ -415,6 +417,7 @@ export default function PostmasterCheckPage() {
                 <th>Domain</th>
                 <th>Status</th>
                 <th>Verification Details</th>
+                <th>Google Verification Key</th>
                 <th>Last Checked</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
@@ -431,6 +434,28 @@ export default function PostmasterCheckPage() {
                   </td>
                   <td className="details-cell" title={r.reason}>
                     {r.reason}
+                  </td>
+                  <td>
+                    {r.googleSiteVerification ? (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <code style={{ fontSize: '0.8rem', color: '#c084fc', background: 'rgba(192, 132, 252, 0.1)', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
+                          {r.googleSiteVerification.replace('google-site-verification=', '')}
+                        </code>
+                        <button
+                          className="btn-postmaster-action secondary"
+                          style={{ padding: '0.15rem 0.3rem', fontSize: '0.75rem', display: 'inline-flex' }}
+                          title="Copy Full Verification Key"
+                          onClick={() => {
+                            navigator.clipboard.writeText(r.googleSiteVerification || '');
+                            showToast('📋 Copied Google key to clipboard!');
+                          }}
+                        >
+                          📋
+                        </button>
+                      </div>
+                    ) : (
+                      <span style={{ color: '#64748b', fontSize: '0.8rem' }}>—</span>
+                    )}
                   </td>
                   <td className="date-cell">{r.date}</td>
                   <td style={{ textAlign: 'right' }}>
