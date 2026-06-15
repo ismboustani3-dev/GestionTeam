@@ -28,6 +28,8 @@ export default function PostmasterCheckPage() {
   const [checkProgress, setCheckProgress] = useState(0);
   const [totalToCheck, setTotalToCheck] = useState(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [importText, setImportText] = useState('');
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -283,6 +285,79 @@ export default function PostmasterCheckPage() {
     }
   };
 
+  // Import Google Site Verification keys from clipboard text area
+  const handleImportGoogleKeys = async () => {
+    if (!importText.trim()) return;
+
+    try {
+      const lines = importText.split('\n');
+      const keyMap: Record<string, string> = {};
+
+      lines.forEach(line => {
+        const parts = line.split('\t');
+        if (parts.length >= 2) {
+          const domain = parts[0].trim();
+          const key = parts[1].trim();
+          if (domain && key) {
+            keyMap[domain] = key;
+          }
+        } else {
+          const partsSpace = line.split(/\s+/);
+          if (partsSpace.length >= 2) {
+            const domain = partsSpace[0].trim();
+            const keyPart = partsSpace.find(p => p.includes('google-site-verification='));
+            if (domain && keyPart) {
+              keyMap[domain] = keyPart.trim();
+            }
+          }
+        }
+      });
+
+      const domainCount = Object.keys(keyMap).length;
+      if (domainCount === 0) {
+        alert('Could not find any valid domain/key pairs. Ensure they are in format: domain [tab/space] google-site-verification=...');
+        return;
+      }
+
+      const updatedTeams = teams.map(t => {
+        if (t.name !== activeTeam) return t;
+
+        return {
+          ...t,
+          servers: (t.servers || []).map((s: any) => {
+            if (s.status === 'deleted') return s;
+            const newPostmasterDetails = { ...(s.postmasterDetails || {}) };
+            let hasUpdates = false;
+
+            const uniqueDomains = getUniqueIpDomains(s.ipDomains);
+            uniqueDomains.forEach((d: any) => {
+              if (d.domain && keyMap[d.domain]) {
+                newPostmasterDetails[d.domain] = {
+                  ...(newPostmasterDetails[d.domain] || { status: 'Pending', date: '—', reason: 'Verification pending' }),
+                  googleSiteVerification: keyMap[d.domain]
+                };
+                hasUpdates = true;
+              }
+            });
+
+            if (hasUpdates) {
+              return { ...s, postmasterDetails: newPostmasterDetails };
+            }
+            return s;
+          })
+        };
+      });
+
+      await triggerSave(updatedTeams);
+      showToast(`✅ Successfully imported ${domainCount} Google Site Verification keys!`);
+      setImportText('');
+      setIsImportOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert('Error occurred during importing keys');
+    }
+  };
+
   return (
     <div className="postmaster-check-container animate-fade-in">
       {/* Header */}
@@ -359,6 +434,13 @@ export default function PostmasterCheckPage() {
             style={{ color: '#c084fc' }}
           >
             📋 Copy Domain List
+          </button>
+          <button
+            className="btn-postmaster-action secondary"
+            onClick={() => setIsImportOpen(true)}
+            style={{ color: '#38bdf8' }}
+          >
+            📥 Import Google Keys
           </button>
           <button
             className="btn-postmaster-action secondary"
@@ -474,6 +556,79 @@ export default function PostmasterCheckPage() {
           </table>
         )}
       </div>
+
+      {/* Import Modal */}
+      {isImportOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: '#0f172a',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '16px',
+            padding: '2rem',
+            width: '90%',
+            maxWidth: '600px',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)'
+          }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff', marginBottom: '0.5rem' }}>
+              📥 Import Google Verification Keys
+            </h3>
+            <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '1.2rem', lineHeight: '1.4' }}>
+              Paste the tab-separated or space-separated list of domains and their google-site-verification keys. 
+              Example format: <br/>
+              <code>domain1.com  google-site-verification=gh_CsFq...</code>
+            </p>
+            <textarea
+              style={{
+                width: '100%',
+                height: '200px',
+                background: 'rgba(15, 23, 42, 0.5)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                color: '#fff',
+                padding: '0.8rem',
+                fontFamily: 'monospace',
+                fontSize: '0.85rem',
+                outline: 'none',
+                resize: 'vertical',
+                marginBottom: '1.5rem'
+              }}
+              placeholder="Paste domain and keys here..."
+              value={importText}
+              onChange={e => setImportText(e.target.value)}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.8rem' }}>
+              <button
+                className="btn-postmaster-action secondary"
+                onClick={() => {
+                  setImportText('');
+                  setIsImportOpen(false);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-postmaster-action primary"
+                onClick={handleImportGoogleKeys}
+                disabled={!importText.trim()}
+              >
+                Save Keys
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast message popup */}
       {toastMessage && (
