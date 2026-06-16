@@ -840,9 +840,17 @@ export default function PostmasterCheckPage() {
                            r.status === 'LOW' ? '⚠ Plutôt Mauvaise' :
                            r.status === 'BAD' || r.status === 'FAIL' ? '✗ Mauvaise' : '⏳ Pending'}
                         </span>
-                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', maxWidth: '220px', whiteSpace: 'normal', lineHeight: '1.2' }}>
-                          {r.reason}
-                        </span>
+                        {r.reason && 
+                         r.status !== 'GOOD' && 
+                         r.status !== 'MEDIUM' && 
+                         r.status !== 'LOW' && 
+                         r.status !== 'BAD' && 
+                         !r.reason.includes('SMTP verification skipped') && 
+                         !r.reason.includes('MX Active') && (
+                          <span style={{ fontSize: '0.75rem', color: '#94a3b8', maxWidth: '220px', whiteSpace: 'normal', lineHeight: '1.2' }}>
+                            {r.reason}
+                          </span>
+                        )}
                         {r.date && r.date !== '—' && (
                           <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
                             Checked: {r.date}
