@@ -154,6 +154,31 @@ async function goBackToDomainList(page) {
   await new Promise(r => setTimeout(r, 2000));
 }
 
+function killExistingChromeOnPort9222() {
+  return new Promise((resolve) => {
+    console.log('🧹 Checking for existing processes on port 9222...');
+    exec('netstat -ano | findstr :9222', (err, stdout) => {
+      if (err || !stdout) {
+        return resolve();
+      }
+      const lines = stdout.split(/\r?\n/).filter(line => line.includes('LISTENING') || line.includes('127.0.0.1:9222'));
+      if (lines.length === 0) {
+        return resolve();
+      }
+      const parts = lines[0].trim().split(/\s+/);
+      const pid = parts[parts.length - 1];
+      if (pid && /^\d+$/.test(pid)) {
+        console.log(`🧹 Found zombie Chrome process (PID: ${pid}) listening on port 9222. Terminating it to release lock...`);
+        exec(`taskkill /F /PID ${pid}`, () => {
+          setTimeout(resolve, 1500);
+        });
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
 async function launchChrome() {
   const chromePath = fs.existsSync('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe')
     ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
@@ -312,24 +337,12 @@ async function run() {
 
   console.log(`Need to process ${domainsToVerify.length} domains.\n`);
 
-  // Check if Chrome is already running on 9222
-  let chromeReady = false;
-  try {
-    const http = require('http');
-    await new Promise((resolve, reject) => {
-      http.get('http://127.0.0.1:9222/json/version', (res) => {
-        let d = '';
-        res.on('data', c => d += c);
-        res.on('end', () => resolve(d));
-      }).on('error', reject);
-    });
-    chromeReady = true;
-    console.log('Chrome already running on port 9222');
-  } catch (e) {
-    console.log('Chrome not running, launching...');
-    await launchChrome();
-    chromeReady = true;
-  }
+  // Always terminate any zombie processes on port 9222 first to release the profile lock and ensure a fresh window opens
+  await killExistingChromeOnPort9222();
+
+  console.log('Launching Chrome...');
+  await launchChrome();
+  let chromeReady = true;
 
   console.log('🔗 Connecting Puppeteer...');
   const browser = await puppeteer.connect({
