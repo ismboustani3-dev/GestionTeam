@@ -818,12 +818,28 @@ export default function InfrastructurePage() {
                 if (!d.domain) return;
                 const lookupResult = data.results[d.domain];
                 if (lookupResult) {
-                  newPostmasterDetails[d.domain] = {
-                    status: lookupResult.status,
-                    reason: lookupResult.reason || '',
-                    date: todayStrPostmaster
-                  };
-                  hasUpdates = true;
+                  const current = newPostmasterDetails[d.domain] || {};
+                  
+                  // If already verified in GWT, do not overwrite the GWT reputation status with SMTP check failures
+                  if (current.postmasterStatus === 'Verified') {
+                    if (!current.status || current.status === 'Pending') {
+                      newPostmasterDetails[d.domain] = {
+                        ...current,
+                        status: lookupResult.status,
+                        reason: lookupResult.reason || '',
+                        date: todayStrPostmaster
+                      };
+                      hasUpdates = true;
+                    }
+                  } else {
+                    newPostmasterDetails[d.domain] = {
+                      ...current,
+                      status: lookupResult.status,
+                      reason: lookupResult.reason || '',
+                      date: todayStrPostmaster
+                    };
+                    hasUpdates = true;
+                  }
                 }
               });
 

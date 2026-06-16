@@ -937,7 +937,7 @@ async function run() {
             break;
           }
         }
-      } else if (status === 'Verified' && (mode === 'sync' || mode === 'all')) {
+      } else if (status === 'Verified' && (mode === 'sync' || mode === 'validate' || mode === 'all')) {
         try {
           console.log(`  Domain is verified. Navigating to reputation reports for ${targetDomainKey}...`);
           
