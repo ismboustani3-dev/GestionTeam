@@ -29,7 +29,7 @@ interface PostmasterRow {
   serverStatus?: string;
   domain: string;
   ip: string;
-  status: 'OK' | 'FAIL' | 'Pending';
+  status: 'OK' | 'FAIL' | 'Pending' | 'GOOD' | 'MEDIUM' | 'LOW' | 'BAD';
   reason: string;
   date: string;
   googleSiteVerification?: string;
@@ -829,8 +829,16 @@ export default function PostmasterCheckPage() {
                     <td className="domain-cell" style={cellStyle}><code>{r.domain}</code></td>
                     <td style={cellStyle}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                        <span className={`badge-postmaster ${r.status === 'OK' ? 'ok' : r.status === 'FAIL' ? 'fail' : 'pending'}`}>
-                          {r.status === 'OK' ? '✓ Healthy' : r.status === 'FAIL' ? '✗ Unhealthy' : '⏳ Pending'}
+                        <span className={`badge-postmaster ${
+                          r.status === 'GOOD' || r.status === 'OK' ? 'ok' :
+                          r.status === 'MEDIUM' ? 'warn' :
+                          r.status === 'LOW' ? 'low' :
+                          r.status === 'BAD' || r.status === 'FAIL' ? 'fail' : 'pending'
+                        }`}>
+                          {r.status === 'GOOD' || r.status === 'OK' ? '✓ Bonne' :
+                           r.status === 'MEDIUM' ? '⚠ Moyenne' :
+                           r.status === 'LOW' ? '⚠ Plutôt Mauvaise' :
+                           r.status === 'BAD' || r.status === 'FAIL' ? '✗ Mauvaise' : '⏳ Pending'}
                         </span>
                         <span style={{ fontSize: '0.75rem', color: '#94a3b8', maxWidth: '220px', whiteSpace: 'normal', lineHeight: '1.2' }}>
                           {r.reason}

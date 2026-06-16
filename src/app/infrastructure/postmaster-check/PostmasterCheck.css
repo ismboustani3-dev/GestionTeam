@@ -307,6 +307,18 @@
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
+.badge-postmaster.warn {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fb923c;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-postmaster.low {
+  background: rgba(236, 72, 153, 0.15);
+  color: #f472b6;
+  border: 1px solid rgba(236, 72, 153, 0.3);
+}
+
 .badge-postmaster.fail {
   background: rgba(239, 68, 68, 0.15);
   color: #ef4444;
