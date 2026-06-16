@@ -91,17 +91,24 @@
   flex-wrap: wrap;
 }
 
-.search-filters-pane input.search {
+.search-filters-pane input.search,
+.search-filters-pane textarea.search {
   padding: 0.5rem 0.8rem;
   background: rgba(15, 23, 42, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   color: #fff;
   font-size: 0.9rem;
-  width: 240px;
+  width: 260px;
+  height: 38px;
+  min-height: 38px;
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
 }
 
-.search-filters-pane input.search:focus {
+.search-filters-pane input.search:focus,
+.search-filters-pane textarea.search:focus {
   border-color: #10b981;
   outline: none;
 }
@@ -327,4 +334,209 @@
   font-size: 0.9rem;
   backdrop-filter: blur(8px);
   animation: slideUp 0.3s ease-out;
+}
+
+/* Google Postmaster Bot Control Panel */
+.postmaster-bot-panel {
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.bot-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.bot-panel-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.bot-panel-status {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bot-status-badge {
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.bot-status-badge.idle {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.bot-status-badge.running {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  animation: pulse 2s infinite alternate;
+}
+
+.bot-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+/* Console logs terminal */
+.bot-console-container {
+  border-radius: 12px;
+  background: #090d16;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  font-family: monospace;
+}
+
+.bot-console-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  background: rgba(15, 23, 42, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.bot-console-logs {
+  padding: 1rem;
+  margin: 0;
+  max-height: 250px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #38bdf8; /* light blue console text */
+  white-space: pre-wrap;
+  word-break: break-all;
+  text-align: left;
+}
+
+/* Console pulsing dot */
+.console-pulsing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #64748b;
+  display: inline-block;
+}
+
+.console-pulsing-dot.running {
+  background-color: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+  animation: pulse-red 1.2s infinite;
+}
+
+@keyframes pulse-red {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0.5;
+  }
+}
+
+/* Stats Cards Dashboard */
+.postmaster-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.postmaster-stat-card {
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 1.2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.postmaster-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+.postmaster-stat-card.total {
+  border-left: 4px solid #38bdf8;
+}
+
+.postmaster-stat-card.verified {
+  border-left: 4px solid #10b981;
+}
+
+.postmaster-stat-card.unverified {
+  border-left: 4px solid #ef4444;
+}
+
+.postmaster-stat-card.pending {
+  border-left: 4px solid #94a3b8;
+}
+
+.stat-card-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.stat-card-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #fff;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.stat-card-pct {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.postmaster-stat-card.verified .stat-card-pct {
+  color: rgba(16, 185, 129, 0.7);
+}
+
+.postmaster-stat-card.unverified .stat-card-pct {
+  color: rgba(239, 68, 68, 0.7);
+}
+
+.postmaster-stat-card.pending .stat-card-pct {
+  color: rgba(148, 163, 184, 0.7);
 }
