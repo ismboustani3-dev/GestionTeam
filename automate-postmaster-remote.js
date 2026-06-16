@@ -838,9 +838,9 @@ async function run() {
         }
       }
 
-      if (unsavedCount > 0) {
+      if (unsavedCount >= 20) {
         await setDoc(docRef, { teams });
-        console.log(`  💾 Saved changes to Firebase (${results.length} total)`);
+        console.log(`  💾 Batch saved to Firebase (${results.length} total)`);
         unsavedCount = 0;
       }
     }
@@ -1180,9 +1180,9 @@ async function run() {
         results.push({ domain, verificationToken: token || 'N/A', validationStatus });
         unsavedCount++;
 
-        if (unsavedCount > 0) {
+        if (unsavedCount >= 20) {
           await setDoc(docRef, { teams });
-          console.log(`  💾 Saved changes to Firebase (${results.length} total)`);
+          console.log(`  💾 Batch saved to Firebase (${results.length} total)`);
           unsavedCount = 0;
         }
 
