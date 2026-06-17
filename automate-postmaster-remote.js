@@ -962,154 +962,92 @@ async function run() {
         }
       } else if (status === 'Verified' && (mode === 'sync' || mode === 'validate' || mode === 'all')) {
         try {
-          console.log(`  Domain is verified. Navigating to reputation reports for ${targetDomainKey}...`);
+          const targetUrl = `https://postmaster.google.com/u/0/dashboards#do=${targetDomainKey}&st=domainReputation&dr=7`;
+          console.log(`  Domain is verified. Direct navigating to: ${targetUrl}`);
           
-          // Click domain name to navigate
-          const clickedDomain = await page.evaluate((name) => {
-            const all = Array.from(document.querySelectorAll('a, span, div'));
-            const el = all.find(e => e.childNodes.length === 1 && e.innerText?.trim().toLowerCase() === name.toLowerCase());
-            if (el) {
-              el.scrollIntoView({ block: 'center' });
-              el.click();
-              return true;
+          await page.goto(targetUrl, { waitUntil: 'networkidle2' });
+          await new Promise(r => setTimeout(r, 4000)); // wait for client-side routing & data load
+
+          // Check if there is "No data to display" on the page
+          const noDataMsg = await page.evaluate(() => {
+            const bodyText = document.body.innerText || '';
+            const cleanText = bodyText.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            
+            const hasNoDataText = cleanText.includes('aucune donnee a afficher') || 
+                                  cleanText.includes('no data to display') || 
+                                  cleanText.includes('veuillez importer des donnees') || 
+                                  cleanText.includes('please upload data') ||
+                                  cleanText.includes('no result');
+            if (hasNoDataText) {
+              const candidates = ['aucune donnée à afficher pour le moment', 'no data to display at this time', 'aucune donnée à afficher', 'no data to display'];
+              const match = candidates.find(c => cleanText.includes(c));
+              return match ? match : 'No data to display';
             }
-            return false;
-          }, targetDomainKey);
+            return null;
+          });
 
-          if (clickedDomain) {
-            await new Promise(r => setTimeout(r, 3000));
+          let reputationResult = { status: 'Pending', reason: 'No data available' };
 
-            // Select "Réputation des domaines" dropdown option
-            let clickedDropdown = false;
-            for (let attempt = 0; attempt < 5; attempt++) {
-              const dropdownBox = await page.evaluate(() => {
-                const reportNames = [
-                  'taux de mise en spam', 'spam rate',
-                  'reputation des adresses ip', 'ip reputation',
-                  'reputation des domaines', 'domain reputation',
-                  'boucle de retroaction', 'feedback loop',
-                  'authentification', 'authentication',
-                  'chiffrement', 'encryption',
-                  'erreurs de distribution', 'delivery errors'
-                ];
-                const all = Array.from(document.querySelectorAll('div, span, button, [role="button"]'));
-                for (const el of all) {
-                  if (el.childNodes.length === 1 || (el.childNodes.length > 0 && Array.from(el.childNodes).every(c => c.nodeType === Node.TEXT_NODE || c.tagName === 'SPAN'))) {
-                    const txt = (el.innerText || '').toLowerCase().trim();
-                    if (reportNames.includes(txt)) {
-                      const rect = el.getBoundingClientRect();
-                      if (rect.width > 0 && rect.height > 0 && rect.top < 150) {
-                        return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
-                      }
-                    }
-                  }
-                }
-                return null;
-              });
-
-              if (dropdownBox) {
-                await page.mouse.click(dropdownBox.x + dropdownBox.width / 2, dropdownBox.y + dropdownBox.height / 2);
-                clickedDropdown = true;
-                break;
-              }
-              await new Promise(r => setTimeout(r, 1000));
-            }
-
-            if (clickedDropdown) {
-              await new Promise(r => setTimeout(r, 1500));
-
-              // Click "Réputation des domaines"
-              let clickedItem = false;
-              for (let attempt = 0; attempt < 5; attempt++) {
-                const itemBox = await page.evaluate(() => {
-                  const targets = ['reputation des domaines', 'domain reputation'];
-                  const all = Array.from(document.querySelectorAll('*'));
-                  for (const el of all) {
-                    const txt = (el.innerText || '').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                    if (targets.some(t => txt === t)) {
-                      const rect = el.getBoundingClientRect();
-                      if (rect.width > 0 && rect.height > 0) {
-                        return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
-                      }
-                    }
-                  }
-                  return null;
-                });
-
-                if (itemBox) {
-                  await page.mouse.click(itemBox.x + itemBox.width / 2, itemBox.y + itemBox.height / 2);
-                  clickedItem = true;
-                  break;
-                }
-                await new Promise(r => setTimeout(r, 1000));
-              }
-
-              if (clickedItem) {
-                await new Promise(r => setTimeout(r, 3000));
-
-                // Extract table data
-                const tableData = await page.evaluate(() => {
-                  const rows = Array.from(document.querySelectorAll('tr, [role="row"]'));
-                  const extracted = [];
-                  for (const row of rows) {
-                    const cells = Array.from(row.querySelectorAll('td, [role="gridcell"]'));
-                    if (cells.length >= 2) {
-                      const dateText = cells[0].innerText?.trim();
-                      const repText = cells[1].innerText?.trim();
-                      if (dateText && repText) {
-                        extracted.push({ dateText, repText });
-                      }
-                    }
-                  }
-                  return extracted;
-                });
-
-                // Parse dates and find the most recent row
-                const validRows = [];
-                for (const row of tableData) {
-                  const dText = row.dateText.toLowerCase();
-                  if (dText.includes('date') || dText.includes('reputation') || dText.includes('taux')) {
-                    continue;
-                  }
-                  const parsedDate = parseGwtDate(row.dateText);
-                  if (parsedDate) {
-                    validRows.push({ date: parsedDate, dateText: row.dateText, value: row.repText });
-                  }
-                }
-
-                let reputationResult = { status: 'Pending', reason: 'No data available' };
-                if (validRows.length > 0) {
-                  validRows.sort((a, b) => b.date - a.date);
-                  const mostRecent = validRows[0];
-                  reputationResult = mapReputationStatus(mostRecent.value);
-                  console.log(`  Parsed most recent reputation: ${mostRecent.value} on ${mostRecent.dateText}`);
-                } else {
-                  console.log('  ⚠️ No reputation data rows found in table');
-                }
-
-                // Update Firestore memory
-                mappings.forEach(({ teamIdx, serverIdx, originalDomain }) => {
-                  const detail = teams[teamIdx].servers[serverIdx].postmasterDetails[originalDomain];
-                  detail.status = reputationResult.status;
-                  detail.reason = reputationResult.reason;
-                  detail.date = new Date().toLocaleDateString('fr-FR');
-                });
-                unsavedCount++;
-              } else {
-                console.log('  ❌ Could not click "Réputation des domaines" dropdown menu item');
-              }
-            } else {
-              console.log('  ❌ Could not open report dropdown');
-            }
-
-            // Go back to domains list
-            await goBackToDomainList(page);
+          if (noDataMsg) {
+            console.log(`  ℹ️ No data available message detected: "${noDataMsg}"`);
+            reputationResult = { status: 'Pending', reason: noDataMsg };
           } else {
-            console.log(`  ❌ Could not click domain name link: ${targetDomainKey}`);
+            // Extract table data
+            const tableData = await page.evaluate(() => {
+              const rows = Array.from(document.querySelectorAll('tr, [role="row"]'));
+              const extracted = [];
+              for (const row of rows) {
+                const cells = Array.from(row.querySelectorAll('td, [role="gridcell"]'));
+                if (cells.length >= 2) {
+                  const dateText = cells[0].innerText?.trim();
+                  const repText = cells[1].innerText?.trim();
+                  if (dateText && repText) {
+                    extracted.push({ dateText, repText });
+                  }
+                }
+              }
+              return extracted;
+            });
+
+            // Parse dates and find the most recent row
+            const validRows = [];
+            for (const row of tableData) {
+              const dText = row.dateText.toLowerCase();
+              if (dText.includes('date') || dText.includes('reputation') || dText.includes('taux')) {
+                continue;
+              }
+              const parsedDate = parseGwtDate(row.dateText);
+              if (parsedDate) {
+                validRows.push({ date: parsedDate, dateText: row.dateText, value: row.repText });
+              }
+            }
+
+            if (validRows.length > 0) {
+              validRows.sort((a, b) => b.date - a.date);
+              const mostRecent = validRows[0];
+              reputationResult = mapReputationStatus(mostRecent.value);
+              console.log(`  Parsed most recent reputation: ${mostRecent.value} on ${mostRecent.dateText}`);
+            } else {
+              console.log('  ⚠️ No reputation data rows found in table');
+            }
           }
+
+          // Update Firestore memory
+          mappings.forEach(({ teamIdx, serverIdx, originalDomain }) => {
+            const detail = teams[teamIdx].servers[serverIdx].postmasterDetails[originalDomain];
+            detail.status = reputationResult.status;
+            detail.reason = reputationResult.reason;
+            detail.date = new Date().toLocaleDateString('fr-FR');
+          });
+          unsavedCount++;
+
+          // Go back to main domains list for next iteration
+          await page.goto('https://postmaster.google.com/u/0/managedomains', { waitUntil: 'networkidle2' });
+          await new Promise(r => setTimeout(r, 2000));
         } catch (e) {
           console.log(`  ❌ Error during reputation collection: ${e.message}`);
-          await goBackToDomainList(page);
+          await page.goto('https://postmaster.google.com/u/0/managedomains', { waitUntil: 'networkidle2' });
+          await new Promise(r => setTimeout(r, 2000));
         }
       }
 
