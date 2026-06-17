@@ -187,10 +187,20 @@ async function launchChrome() {
   const profileDir = path.join(__dirname, '..', 'chrome_profile_ismadian');
   
   console.log(`🚀 Launching Chrome with profile: ${profileDir}`);
-  const cmd = `"${chromePath}" --remote-debugging-port=9222 --user-data-dir="${profileDir}" --start-maximized "https://postmaster.google.com/u/0/managedomains"`;
   
+  // Use PowerShell Start-Process to force Chrome to open as a visible interactive window on the active desktop
+  const args = [
+    `--remote-debugging-port=9222`,
+    `--user-data-dir=${profileDir}`,
+    `--start-maximized`,
+    `https://postmaster.google.com/u/0/managedomains`
+  ];
+  const escapedArgs = args.map(arg => `'${arg.replace(/'/g, "''")}'`).join(', ');
+  const cmd = `powershell -Command "Start-Process -FilePath '${chromePath}' -ArgumentList ${escapedArgs}"`;
+  
+  console.log('Spawning Chrome via PowerShell Start-Process...');
   const child = exec(cmd, (err) => {
-    if (err) console.log('Chrome process ended:', err.message);
+    if (err) console.log('PowerShell launch command ended:', err.message);
   });
   
   // Don't let the child process prevent Node from exiting

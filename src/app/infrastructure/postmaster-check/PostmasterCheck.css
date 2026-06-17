@@ -493,6 +493,7 @@
   padding: 1.2rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 .postmaster-stat-card:hover {
@@ -505,16 +506,40 @@
   border-left: 4px solid #38bdf8;
 }
 
+.postmaster-stat-card.total.active {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: #38bdf8;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
+}
+
 .postmaster-stat-card.verified {
   border-left: 4px solid #10b981;
+}
+
+.postmaster-stat-card.verified.active {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: #10b981;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
 }
 
 .postmaster-stat-card.unverified {
   border-left: 4px solid #ef4444;
 }
 
+.postmaster-stat-card.unverified.active {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: #ef4444;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.15);
+}
+
 .postmaster-stat-card.pending {
   border-left: 4px solid #94a3b8;
+}
+
+.postmaster-stat-card.pending.active {
+  background: rgba(148, 163, 184, 0.08);
+  border-color: #94a3b8;
+  box-shadow: 0 0 15px rgba(148, 163, 184, 0.15);
 }
 
 .stat-card-label {

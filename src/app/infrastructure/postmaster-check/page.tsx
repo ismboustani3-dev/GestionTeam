@@ -320,8 +320,8 @@ export default function PostmasterCheckPage() {
     return rows;
   }, [teams, activeTeam]);
 
-  // Filtered rows by search and status
-  const filteredRows = useMemo(() => {
+  // Filtered rows by search only (used to calculate accurate card stats)
+  const rowsFilteredBySearchOnly = useMemo(() => {
     let result = postmasterRows;
 
     if (searchQuery) {
@@ -341,6 +341,13 @@ export default function PostmasterCheckPage() {
       }
     }
 
+    return result;
+  }, [postmasterRows, searchQuery]);
+
+  // Filtered rows by search and status
+  const filteredRows = useMemo(() => {
+    let result = rowsFilteredBySearchOnly;
+
     if (statusFilter !== 'all') {
       if (statusFilter === 'ok') {
         result = result.filter(r => r.postmasterStatus === 'Verified');
@@ -352,7 +359,7 @@ export default function PostmasterCheckPage() {
     }
 
     return result;
-  }, [postmasterRows, searchQuery, statusFilter]);
+  }, [rowsFilteredBySearchOnly, statusFilter]);
 
   // Pre-calculate row spans for server name grouping
   const rowSpans = useMemo(() => {
@@ -373,12 +380,12 @@ export default function PostmasterCheckPage() {
     return spans;
   }, [filteredRows]);
 
-  // Calculate postmaster status stats dynamically
+  // Calculate postmaster status stats dynamically based on search filter only
   const stats = useMemo(() => {
-    const total = filteredRows.length;
-    const verified = filteredRows.filter(r => r.postmasterStatus === 'Verified').length;
-    const unverified = filteredRows.filter(r => r.postmasterStatus === 'Not Verified').length;
-    const pending = filteredRows.filter(r => r.postmasterStatus === 'Pending' || !r.postmasterStatus).length;
+    const total = rowsFilteredBySearchOnly.length;
+    const verified = rowsFilteredBySearchOnly.filter(r => r.postmasterStatus === 'Verified').length;
+    const unverified = rowsFilteredBySearchOnly.filter(r => r.postmasterStatus === 'Not Verified').length;
+    const pending = rowsFilteredBySearchOnly.filter(r => r.postmasterStatus === 'Pending' || !r.postmasterStatus).length;
 
     const getPct = (count: number) => {
       if (total === 0) return '0%';
@@ -394,7 +401,7 @@ export default function PostmasterCheckPage() {
       pending,
       pendingPct: getPct(pending)
     };
-  }, [filteredRows]);
+  }, [rowsFilteredBySearchOnly]);
 
   const togglePostmasterStatus = async (row: PostmasterRow) => {
     const newStatus = row.postmasterStatus === 'Verified' ? 'Not Verified' : 'Verified';
@@ -581,25 +588,37 @@ export default function PostmasterCheckPage() {
 
       {/* Stats Cards Dashboard */}
       <div className="postmaster-stats-row animate-fade-in">
-        <div className="postmaster-stat-card total">
+        <div 
+          className={`postmaster-stat-card total ${statusFilter === 'all' ? 'active' : ''}`}
+          onClick={() => setStatusFilter('all')}
+        >
           <div className="stat-card-label">📁 Total Domains</div>
           <div className="stat-card-value">{stats.total}</div>
         </div>
-        <div className="postmaster-stat-card verified">
+        <div 
+          className={`postmaster-stat-card verified ${statusFilter === 'ok' ? 'active' : ''}`}
+          onClick={() => setStatusFilter('ok')}
+        >
           <div className="stat-card-label">🟢 Verified Domains</div>
           <div className="stat-card-value">
             {stats.verified}
             <span className="stat-card-pct">({stats.verifiedPct})</span>
           </div>
         </div>
-        <div className="postmaster-stat-card unverified">
+        <div 
+          className={`postmaster-stat-card unverified ${statusFilter === 'fail' ? 'active' : ''}`}
+          onClick={() => setStatusFilter('fail')}
+        >
           <div className="stat-card-label">🔴 Unverified Domains</div>
           <div className="stat-card-value">
             {stats.unverified}
             <span className="stat-card-pct">({stats.unverifiedPct})</span>
           </div>
         </div>
-        <div className="postmaster-stat-card pending">
+        <div 
+          className={`postmaster-stat-card pending ${statusFilter === 'pending' ? 'active' : ''}`}
+          onClick={() => setStatusFilter('pending')}
+        >
           <div className="stat-card-label">⏳ Pending Domains</div>
           <div className="stat-card-value">
             {stats.pending}
