@@ -692,7 +692,7 @@ export default function PostmasterCheckPage() {
             Status: {' '}
             <span className={`bot-status-badge ${botStatus.status}`}>
               {botStatus.status === 'running' 
-                ? `RUNNING (${botStatus.mode === 'add' ? 'Add Mode' : botStatus.mode === 'validate' ? 'Validate Mode' : botStatus.mode === 'sync' ? 'Sync Mode' : botStatus.mode === 'delete' ? 'Delete Mode' : botStatus.mode === 'fetch' ? 'Fetch Mode' : 'All Mode'})` 
+                ? `RUNNING (${botStatus.mode === 'add' ? 'Add Mode' : botStatus.mode === 'validate' ? 'Validate Mode' : botStatus.mode === 'sync' ? 'Postmaster Health Mode' : botStatus.mode === 'delete' ? 'Delete Mode' : botStatus.mode === 'fetch' ? 'Fetch Mode' : 'All Mode'})` 
                 : 'IDLE'}
             </span>
           </div>
@@ -730,7 +730,7 @@ export default function PostmasterCheckPage() {
               handleStartBot('sync', targetDomains);
             }}
           >
-            🔄 Sync GWT Statuses
+            📊 Postmaster Health
           </button>
           <button
             className="btn-postmaster-action primary"
